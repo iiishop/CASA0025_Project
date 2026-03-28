@@ -1,0 +1,14 @@
+frontend/node_modules/
+frontend/dist/
+backend/__pycache__/
+backend/app/__pycache__/
+.env
+frontend/.env
+backend/.env
+.venv/
+.ruff_cache/
+backend/server.log
+backend/server.pid
+frontend/server.log
+frontend/server.pid
+backend/data/
