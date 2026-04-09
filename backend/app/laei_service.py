@@ -9,8 +9,10 @@ import numpy as np
 import rasterio
 from PIL import Image
 from rasterio.enums import Resampling
+from rasterio.transform import rowcol
 from rasterio.transform import from_bounds
 from rasterio.warp import reproject
+from rasterio.warp import transform as warp_transform
 
 
 @dataclass(frozen=True)
@@ -33,6 +35,26 @@ class LAEIService:
         self.src_crs: Dict[str, object] = {}
         self.src_nodata: Dict[str, float | None] = {}
         self.percentiles: Dict[str, tuple[float, float]] = {}
+
+    def _value_at_wgs84(self, key: str, lon: float, lat: float) -> float | None:
+        xs, ys = warp_transform("EPSG:4326", self.src_crs[key], [lon], [lat])
+        x = xs[0]
+        y = ys[0]
+        row, col = rowcol(self.src_transform[key], x, y)
+
+        arr = self.arrays[key]
+        if row < 0 or col < 0 or row >= arr.shape[0] or col >= arr.shape[1]:
+            return None
+
+        val = float(arr[row, col])
+        nodata = self.src_nodata[key]
+        if not np.isfinite(val):
+            return None
+        if nodata is not None and val == nodata:
+            return None
+        if val <= -9990:
+            return None
+        return val
 
     def load(self) -> None:
         for key, path in self.files.items():
@@ -179,3 +201,29 @@ class LAEIService:
                 "pm10": self.percentiles.get("pm10"),
             },
         }
+
+    def score_at_wgs84(
+        self, lon: float, lat: float, weights: AirQualityWeights
+    ) -> float:
+        no2 = self._value_at_wgs84("no2", lon, lat)
+        pm25 = self._value_at_wgs84("pm25", lon, lat)
+        pm10 = self._value_at_wgs84("pm10", lon, lat)
+
+        values: list[tuple[str, float, float]] = [
+            ("no2", weights.no2, no2),
+            ("pm25", weights.pm25, pm25),
+            ("pm10", weights.pm10, pm10),
+        ]
+
+        weighted_sum = 0.0
+        used_weight = 0.0
+        for key, w, v in values:
+            if v is None:
+                continue
+            v_n = float(self._normalize(key, np.array([v], dtype=np.float32))[0])
+            weighted_sum += v_n * w
+            used_weight += w
+
+        if used_weight <= 0.0:
+            return 0.0
+        return weighted_sum / used_weight

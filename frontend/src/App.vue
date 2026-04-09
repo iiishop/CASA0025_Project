@@ -3,7 +3,10 @@ import { computed, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import mapboxgl from "mapbox-gl";
 
 const backendBaseUrl = import.meta.env.VITE_BACKEND_BASE_URL || "http://127.0.0.1:8000";
-const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || "";
+const mapboxToken =
+  import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ||
+  "REDACTED_MAPBOX_TOKEN";
+const ROAD_BUFFER_PX = 3;
 
 const mapContainer = ref(null);
 const mapRef = ref(null);
@@ -13,8 +16,10 @@ const loading = ref(false);
 let refreshTimer = null;
 let latestRequestId = 0;
 let activeController = null;
+let lastTileMode = "normal";
 
 const weights = ref({ no2: 0.4, pm25: 0.35, pm10: 0.25 });
+const roadFocusEnabled = ref(false);
 
 const totalWeight = computed(() =>
   Number((weights.value.no2 + weights.value.pm25 + weights.value.pm10).toFixed(2)),
@@ -29,38 +34,64 @@ const sliderPercents = computed(() => {
   };
 });
 
-async function fetchLatestMeta() {
-  const response = await fetch(`${backendBaseUrl}/meta/air-quality/latest`);
+async function fetchLatestMeta(signal) {
+  const response = await fetch(`${backendBaseUrl}/meta/air-quality/latest`, { signal });
   if (!response.ok) {
     throw new Error(`Failed to fetch metadata: ${response.status}`);
   }
   latestMeta.value = await response.json();
 }
 
-async function fetchTiles(signal) {
+function buildNormalTileUrl() {
   const params = new URLSearchParams({
     no2_weight: String(weights.value.no2),
     pm25_weight: String(weights.value.pm25),
     pm10_weight: String(weights.value.pm10),
   });
+  return `${backendBaseUrl}/tiles/air-quality/{z}/{x}/{y}.png?${params.toString()}`;
+}
 
-  const response = await fetch(`${backendBaseUrl}/tiles/air-quality?${params.toString()}`, { signal });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch tiles URL: ${response.status}`);
-  }
-  return response.json();
+function buildRoadFocusTileUrl() {
+  const params = new URLSearchParams({
+    no2_weight: String(weights.value.no2),
+    pm25_weight: String(weights.value.pm25),
+    pm10_weight: String(weights.value.pm10),
+    road_buffer_px: String(ROAD_BUFFER_PX),
+  });
+  return `${backendBaseUrl}/tiles/air-quality-road/{z}/{x}/{y}.png?${params.toString()}`;
+}
+
+function buildOsmRoadOverlayTileUrl() {
+  const params = new URLSearchParams({
+    road_buffer_px: String(ROAD_BUFFER_PX),
+  });
+  return `${backendBaseUrl}/tiles/osm-road-overlay/{z}/{x}/{y}.png?${params.toString()}`;
 }
 
 function initMap() {
-  if (!mapboxToken) {
-    throw new Error("VITE_MAPBOX_ACCESS_TOKEN is missing.");
-  }
-
   mapboxgl.accessToken = mapboxToken;
 
   const map = new mapboxgl.Map({
     container: mapContainer.value,
-    style: "mapbox://styles/mapbox/light-v11",
+    style: {
+      version: 8,
+      sources: {
+        "osm-base": {
+          type: "raster",
+          tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+          tileSize: 256,
+          attribution: "© OpenStreetMap contributors",
+          maxzoom: 19,
+        },
+      },
+      layers: [
+        {
+          id: "osm-base-layer",
+          type: "raster",
+          source: "osm-base",
+        },
+      ],
+    },
     center: [-0.1278, 51.5074],
     zoom: 9,
     pitch: 0,
@@ -71,8 +102,44 @@ function initMap() {
   mapRef.value = map;
 
   map.on("load", async () => {
+    ensureRoadOverlayLayer(map);
     await refreshAirQualityLayer();
   });
+}
+
+function ensureRoadOverlayLayer(map) {
+  if (!map.getSource("osm-road-overlay-source")) {
+    map.addSource("osm-road-overlay-source", {
+      type: "raster",
+      tiles: [buildOsmRoadOverlayTileUrl()],
+      tileSize: 256,
+    });
+  }
+
+  if (!map.getLayer("osm-road-overlay-layer")) {
+    map.addLayer({
+      id: "osm-road-overlay-layer",
+      type: "raster",
+      source: "osm-road-overlay-source",
+      paint: {
+        "raster-opacity": 0.86,
+        "raster-fade-duration": 0,
+        "raster-resampling": "linear",
+      },
+      layout: {
+        visibility: "none",
+      },
+    });
+  }
+}
+
+function syncRoadOverlayVisibility() {
+  const map = mapRef.value;
+  if (!map) return;
+  const visibility = roadFocusEnabled.value ? "visible" : "none";
+  if (map.getLayer("osm-road-overlay-layer")) {
+    map.setLayoutProperty("osm-road-overlay-layer", "visibility", visibility);
+  }
 }
 
 async function refreshAirQualityLayer() {
@@ -88,20 +155,36 @@ async function refreshAirQualityLayer() {
   errorMessage.value = "";
 
   try {
-    const tileResponse = await fetchTiles(activeController.signal);
+    await fetchLatestMeta(activeController.signal);
     if (requestId !== latestRequestId) {
       return;
     }
 
     const map = mapRef.value;
     const existingSource = map.getSource("air-quality-source");
+    const selectedTileUrl = roadFocusEnabled.value
+      ? buildRoadFocusTileUrl()
+      : buildNormalTileUrl();
+    const currentMode = roadFocusEnabled.value ? "road-focus" : "normal";
+    const overlayTileUrl = buildOsmRoadOverlayTileUrl();
 
-    if (existingSource && typeof existingSource.setTiles === "function") {
-      existingSource.setTiles([tileResponse.tile_url]);
+    if (
+      existingSource &&
+      typeof existingSource.setTiles === "function" &&
+      lastTileMode === currentMode
+    ) {
+      existingSource.setTiles([selectedTileUrl]);
     } else {
+      if (map.getLayer("air-quality-raster")) {
+        map.removeLayer("air-quality-raster");
+      }
+      if (map.getSource("air-quality-source")) {
+        map.removeSource("air-quality-source");
+      }
+
       map.addSource("air-quality-source", {
         type: "raster",
-        tiles: [tileResponse.tile_url],
+        tiles: [selectedTileUrl],
         tileSize: 256,
       });
 
@@ -118,10 +201,22 @@ async function refreshAirQualityLayer() {
         },
       });
     }
+    lastTileMode = currentMode;
 
-    if (latestMeta.value) {
-      latestMeta.value.latest_image_time_utc = tileResponse.latest_image_time_utc;
+    const overlaySource = map.getSource("osm-road-overlay-source");
+    if (overlaySource && typeof overlaySource.setTiles === "function") {
+      overlaySource.setTiles([overlayTileUrl]);
     }
+
+    if (map.getLayer("air-quality-raster")) {
+      map.setPaintProperty(
+        "air-quality-raster",
+        "raster-opacity",
+        roadFocusEnabled.value ? 0.95 : 0.82,
+      );
+    }
+    syncRoadOverlayVisibility();
+
   } catch (error) {
     if (error?.name !== "AbortError") {
       errorMessage.value = error instanceof Error ? error.message : String(error);
@@ -142,6 +237,11 @@ function queueRefresh() {
       refreshAirQualityLayer();
     }
   }, 280);
+}
+
+function toggleRoadFocus() {
+  roadFocusEnabled.value = !roadFocusEnabled.value;
+  queueRefresh();
 }
 
 function normalizeWeights(changedKey) {
@@ -212,8 +312,8 @@ onBeforeUnmount(() => {
       <p class="eyebrow">ComfortPath</p>
       <h1>London Air Quality Layer</h1>
       <p class="subtitle">
-        Live NO2 + PM2.5 + PM10 fusion from GEE CAMS. The panel is already designed as a
-        reusable weighting system for future factors.
+        LAEI NO2 + PM2.5 + PM10 fusion. Road Focus keeps the full air-quality surface,
+        while smoothly increasing opacity near OSM roads and fading away from roads.
       </p>
 
       <div class="card">
@@ -261,11 +361,19 @@ onBeforeUnmount(() => {
         <p class="sum-line">Total: {{ totalWeight }}</p>
       </div>
 
+      <div class="card">
+        <h2>Road Focus Filter</h2>
+        <button class="focus-button" @click="toggleRoadFocus">
+          {{ roadFocusEnabled ? "Disable Road Focus" : "Enable Road Focus" }}
+        </button>
+      </div>
+
       <div class="card meta-card" v-if="latestMeta">
         <h2>Latest data</h2>
         <p><span>Dataset:</span> {{ latestMeta.dataset }}</p>
-        <p><span>Time (UTC):</span> {{ latestMeta.latest_image_time_utc }}</p>
-        <p><span>Timezone logic:</span> {{ latestMeta.timezone_reference }}</p>
+        <p><span>Source:</span> {{ latestMeta.source }}</p>
+        <p><span>Year:</span> {{ latestMeta.year }}</p>
+        <p><span>Resolution:</span> {{ latestMeta.resolution }}</p>
       </div>
 
       <p v-if="loading" class="status">Updating raster layer...</p>
