@@ -1,12 +1,10 @@
 <script setup>
 import { computed, onMounted, onBeforeUnmount, ref, watch } from "vue";
-import mapboxgl from "mapbox-gl";
+import maplibregl from "maplibre-gl";
 
 const backendBaseUrl = import.meta.env.VITE_BACKEND_BASE_URL || "http://127.0.0.1:8000";
-const mapboxToken =
-  import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ||
-  "REDACTED_MAPBOX_TOKEN";
 const ROAD_BUFFER_PX = 3;
+const ROAD_OVERLAY_ENABLED = false;
 
 const mapContainer = ref(null);
 const mapRef = ref(null);
@@ -69,9 +67,7 @@ function buildOsmRoadOverlayTileUrl() {
 }
 
 function initMap() {
-  mapboxgl.accessToken = mapboxToken;
-
-  const map = new mapboxgl.Map({
+  const map = new maplibregl.Map({
     container: mapContainer.value,
     style: {
       version: 8,
@@ -98,11 +94,13 @@ function initMap() {
     attributionControl: true,
   });
 
-  map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), "top-right");
+  map.addControl(new maplibregl.NavigationControl(), "top-right");
   mapRef.value = map;
 
   map.on("load", async () => {
-    ensureRoadOverlayLayer(map);
+    if (ROAD_OVERLAY_ENABLED) {
+      ensureRoadOverlayLayer(map);
+    }
     await refreshAirQualityLayer();
   });
 }
@@ -155,18 +153,12 @@ async function refreshAirQualityLayer() {
   errorMessage.value = "";
 
   try {
-    await fetchLatestMeta(activeController.signal);
-    if (requestId !== latestRequestId) {
-      return;
-    }
-
     const map = mapRef.value;
     const existingSource = map.getSource("air-quality-source");
     const selectedTileUrl = roadFocusEnabled.value
       ? buildRoadFocusTileUrl()
       : buildNormalTileUrl();
     const currentMode = roadFocusEnabled.value ? "road-focus" : "normal";
-    const overlayTileUrl = buildOsmRoadOverlayTileUrl();
 
     if (
       existingSource &&
@@ -203,9 +195,12 @@ async function refreshAirQualityLayer() {
     }
     lastTileMode = currentMode;
 
-    const overlaySource = map.getSource("osm-road-overlay-source");
-    if (overlaySource && typeof overlaySource.setTiles === "function") {
-      overlaySource.setTiles([overlayTileUrl]);
+    if (ROAD_OVERLAY_ENABLED) {
+      const overlayTileUrl = buildOsmRoadOverlayTileUrl();
+      const overlaySource = map.getSource("osm-road-overlay-source");
+      if (overlaySource && typeof overlaySource.setTiles === "function") {
+        overlaySource.setTiles([overlayTileUrl]);
+      }
     }
 
     if (map.getLayer("air-quality-raster")) {
@@ -215,7 +210,9 @@ async function refreshAirQualityLayer() {
         roadFocusEnabled.value ? 0.95 : 0.82,
       );
     }
-    syncRoadOverlayVisibility();
+    if (ROAD_OVERLAY_ENABLED) {
+      syncRoadOverlayVisibility();
+    }
 
   } catch (error) {
     if (error?.name !== "AbortError") {

@@ -37,10 +37,19 @@ startup_errors: dict[str, str] = {}
 road_tile_cache: OrderedDict[tuple[int, int, int, int, int, int, int], bytes] = (
     OrderedDict()
 )
-ROAD_TILE_CACHE_LIMIT = 4096
+ROAD_TILE_CACHE_LIMIT = 512
 ROAD_ALPHA_MIN = 5
 ROAD_ALPHA_MAX = 245
 ROAD_ALPHA_GAMMA = 1.35
+TILE_CACHE_CONTROL = "public, max-age=600"
+
+
+def tile_png_response(content: bytes) -> Response:
+    return Response(
+        content=content,
+        media_type="image/png",
+        headers={"Cache-Control": TILE_CACHE_CONTROL},
+    )
 
 
 @app.on_event("startup")
@@ -165,7 +174,7 @@ def air_quality_tile_png(
                 no2=no2_weight, pm25=pm25_weight, pm10=pm10_weight
             ),
         )
-        return Response(content=png, media_type="image/png")
+        return tile_png_response(png)
     except Exception as exc:
         raise HTTPException(
             status_code=500, detail=f"Failed to render tile: {exc}"
@@ -182,7 +191,7 @@ def road_mask_tile_png(
     try:
         osm_service.ensure_loaded()
         png = osm_service.road_mask_png(z=z, x=x, y=y, buffer_px=road_buffer_px)
-        return Response(content=png, media_type="image/png")
+        return tile_png_response(png)
     except Exception as exc:
         raise HTTPException(
             status_code=500, detail=f"Failed to render road mask tile: {exc}"
@@ -215,7 +224,7 @@ def osm_road_overlay_tile_png(
 
         out = BytesIO()
         overlay.save(out, format="PNG")
-        return Response(content=out.getvalue(), media_type="image/png")
+        return tile_png_response(out.getvalue())
     except Exception as exc:
         raise HTTPException(
             status_code=500, detail=f"Failed to render OSM road overlay tile: {exc}"
@@ -245,7 +254,7 @@ def air_quality_road_tile_png(
         cached = road_tile_cache.get(cache_key)
         if cached is not None:
             road_tile_cache.move_to_end(cache_key)
-            return Response(content=cached, media_type="image/png")
+            return tile_png_response(cached)
 
         ensure_ready("laei")
         osm_service.ensure_loaded()
@@ -283,7 +292,7 @@ def air_quality_road_tile_png(
         road_tile_cache[cache_key] = out_value
         if len(road_tile_cache) > ROAD_TILE_CACHE_LIMIT:
             road_tile_cache.popitem(last=False)
-        return Response(content=out_value, media_type="image/png")
+        return tile_png_response(out_value)
     except Exception as exc:
         raise HTTPException(
             status_code=500, detail=f"Failed to render air-quality-road tile: {exc}"

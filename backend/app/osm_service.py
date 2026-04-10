@@ -172,7 +172,22 @@ class OSMWalkService:
         self._mask_cache: OrderedDict[tuple[int, int, int, int, int], bytes] = (
             OrderedDict()
         )
-        self._mask_cache_limit = 4096
+        self._mask_cache_limit = 512
+        self._disk_mask_max_zoom = 13
+        self._mask_cache_root = self.cache_path.parent / "road_mask_cache"
+
+    def _disk_mask_path(
+        self, z: int, x: int, y: int, buffer_px: int, apply_threshold: bool
+    ) -> Path:
+        threshold_key = "th" if apply_threshold else "smooth"
+        return (
+            self._mask_cache_root
+            / threshold_key
+            / f"b{int(buffer_px)}"
+            / f"z{z}"
+            / str(x)
+            / f"{y}.png"
+        )
 
     def _do_load(self) -> None:
         if self.cache_path.exists():
@@ -320,6 +335,16 @@ class OSMWalkService:
             self._mask_cache.move_to_end(cache_key)
             return cached
 
+        disk_path: Path | None = None
+        if z <= self._disk_mask_max_zoom:
+            disk_path = self._disk_mask_path(z, x, y, buffer_px, apply_threshold)
+            if disk_path.exists():
+                value = disk_path.read_bytes()
+                self._mask_cache[cache_key] = value
+                if len(self._mask_cache) > self._mask_cache_limit:
+                    self._mask_cache.popitem(last=False)
+                return value
+
         lon_min, lat_min, lon_max, lat_max = self.tile_bounds_wgs84(z, x, y)
 
         margin_lon = (lon_max - lon_min) * max(1, buffer_px) / 256.0
@@ -382,6 +407,12 @@ class OSMWalkService:
         self._mask_cache[cache_key] = value
         if len(self._mask_cache) > self._mask_cache_limit:
             self._mask_cache.popitem(last=False)
+
+        if disk_path is not None:
+            disk_path.parent.mkdir(parents=True, exist_ok=True)
+            if not disk_path.exists():
+                disk_path.write_bytes(value)
+
         return value
 
     def _nearest_node(self, lon: float, lat: float) -> int:

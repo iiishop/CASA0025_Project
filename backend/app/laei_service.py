@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import OrderedDict
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
@@ -35,6 +36,10 @@ class LAEIService:
         self.src_crs: Dict[str, object] = {}
         self.src_nodata: Dict[str, float | None] = {}
         self.percentiles: Dict[str, tuple[float, float]] = {}
+        self._tile_cache: OrderedDict[tuple[int, int, int, int, int, int], bytes] = (
+            OrderedDict()
+        )
+        self._tile_cache_limit = 512
 
     def _value_at_wgs84(self, key: str, lon: float, lat: float) -> float | None:
         xs, ys = warp_transform("EPSG:4326", self.src_crs[key], [lon], [lat])
@@ -163,6 +168,19 @@ class LAEIService:
     def render_tile_png(
         self, z: int, x: int, y: int, weights: AirQualityWeights
     ) -> bytes:
+        cache_key = (
+            z,
+            x,
+            y,
+            int(round(weights.no2 * 1000)),
+            int(round(weights.pm25 * 1000)),
+            int(round(weights.pm10 * 1000)),
+        )
+        cached = self._tile_cache.get(cache_key)
+        if cached is not None:
+            self._tile_cache.move_to_end(cache_key)
+            return cached
+
         no2 = self._read_tile("no2", z, x, y)
         pm25 = self._read_tile("pm25", z, x, y)
         pm10 = self._read_tile("pm10", z, x, y)
@@ -181,7 +199,11 @@ class LAEIService:
         image = Image.fromarray(rgba, mode="RGBA")
         buf = BytesIO()
         image.save(buf, format="PNG")
-        return buf.getvalue()
+        value = buf.getvalue()
+        self._tile_cache[cache_key] = value
+        if len(self._tile_cache) > self._tile_cache_limit:
+            self._tile_cache.popitem(last=False)
+        return value
 
     def metadata(self) -> dict:
         return {
