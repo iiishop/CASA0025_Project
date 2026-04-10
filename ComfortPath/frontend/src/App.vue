@@ -21,6 +21,8 @@ let latestRequestId = 0;
 let latestRoadRequestId = 0;
 let activeController = null;
 let activeRoadController = null;
+let roadLastDispatchAt = 0;
+const ROAD_REFRESH_THROTTLE_MS = 140;
 
 const weights = ref({ no2: 0.4, pm25: 0.35, pm10: 0.25 });
 
@@ -346,6 +348,9 @@ async function refreshAirQualityLayer() {
   } finally {
     if (requestId === latestRequestId) {
       loading.value = false;
+      if (osmRoadLayerEnabled.value) {
+        queueRoadRefresh();
+      }
     }
   }
 }
@@ -362,16 +367,34 @@ function queueRefresh() {
 }
 
 function queueRoadRefresh() {
+  const now = Date.now();
+  const elapsed = now - roadLastDispatchAt;
+
+  const dispatch = () => {
+    if (mapRef.value?.isStyleLoaded()) {
+      roadLastDispatchAt = Date.now();
+      refreshRoadVectorLayer();
+    }
+  };
+
+  if (elapsed >= ROAD_REFRESH_THROTTLE_MS) {
+    if (roadRefreshTimer) {
+      clearTimeout(roadRefreshTimer);
+      roadRefreshTimer = null;
+    }
+    dispatch();
+    return;
+  }
+
   osmLoading.value = true;
   osmLoadProgress.value = Math.max(osmLoadProgress.value, 2);
   if (roadRefreshTimer) {
-    clearTimeout(roadRefreshTimer);
+    return;
   }
   roadRefreshTimer = setTimeout(() => {
-    if (mapRef.value?.isStyleLoaded()) {
-      refreshRoadVectorLayer();
-    }
-  }, 220);
+    roadRefreshTimer = null;
+    dispatch();
+  }, ROAD_REFRESH_THROTTLE_MS - elapsed);
 }
 
 function toggleOsmRoadLayer() {
