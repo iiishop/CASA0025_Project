@@ -1,7 +1,52 @@
+# OS/editor
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+
 # Quarto and build artifacts
 .quarto/
 _site/
+
+# Runtime artifacts
 *.log
+*.pid
+*.tmp
+*.bak
+
+# Environment files
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.ipynb_checkpoints/
+.coverage
+.coverage.*
+htmlcov/
+
+# Node/Vite
+node_modules/
+**/node_modules/
+**/.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # LaTeX artifacts
 *.aux
@@ -17,9 +62,8 @@ _site/
 *.synctex.gz
 *.toc
 
-# OS/editor
-.DS_Store
-Thumbs.db
-Desktop.ini
-.idea/
-.vscode/
+# ComfortPath generated data/cache
+ComfortPath/backend/data/**
+!ComfortPath/backend/data/.gitkeep
+ComfortPath/backend/data/osm/london_walk_graph.pkl
+ComfortPath/backend/data/osm/road_mask_cache/
