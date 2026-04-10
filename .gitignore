@@ -1,0 +1,25 @@
+# Quarto and build artifacts
+.quarto/
+_site/
+*.log
+
+# LaTeX artifacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+
+# OS/editor
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
