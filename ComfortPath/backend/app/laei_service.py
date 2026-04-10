@@ -23,6 +23,16 @@ class AirQualityWeights:
     pm10: float = 0.25
 
 
+@dataclass(frozen=True)
+class FusionOptions:
+    include_air_quality: bool = True
+    include_no2: bool = True
+    include_pm25: bool = True
+    include_pm10: bool = True
+    include_ndvi: bool = False
+    ndvi_weight: float = 0.0
+
+
 class LAEIService:
     def __init__(self, data_root: Path):
         self.data_root = data_root
@@ -166,7 +176,14 @@ class LAEIService:
         return rgba
 
     def render_tile_png(
-        self, z: int, x: int, y: int, weights: AirQualityWeights
+        self,
+        z: int,
+        x: int,
+        y: int,
+        weights: AirQualityWeights,
+        options: FusionOptions = FusionOptions(),
+        ndvi_tile: np.ndarray | None = None,
+        ndvi_normalizer=None,
     ) -> bytes:
         cache_key = (
             z,
@@ -175,6 +192,12 @@ class LAEIService:
             int(round(weights.no2 * 1000)),
             int(round(weights.pm25 * 1000)),
             int(round(weights.pm10 * 1000)),
+            int(options.include_air_quality),
+            int(options.include_no2),
+            int(options.include_pm25),
+            int(options.include_pm10),
+            int(options.include_ndvi),
+            int(round(options.ndvi_weight * 1000)),
         )
         cached = self._tile_cache.get(cache_key)
         if cached is not None:
@@ -189,12 +212,54 @@ class LAEIService:
         pm25_n = self._normalize("pm25", pm25)
         pm10_n = self._normalize("pm10", pm10)
 
-        w_sum = max(weights.no2 + weights.pm25 + weights.pm10, 1e-9)
-        score = (
-            no2_n * weights.no2 + pm25_n * weights.pm25 + pm10_n * weights.pm10
-        ) / w_sum
+        aq_components: list[tuple[np.ndarray, float, bool]] = [
+            (no2_n, weights.no2, options.include_no2),
+            (pm25_n, weights.pm25, options.include_pm25),
+            (pm10_n, weights.pm10, options.include_pm10),
+        ]
+
+        aq_sum = np.zeros((256, 256), dtype=np.float32)
+        aq_weight_sum = 0.0
+        if options.include_air_quality:
+            for component, w, enabled in aq_components:
+                if not enabled or w <= 0:
+                    continue
+                aq_sum += component * float(w)
+                aq_weight_sum += float(w)
+
+        if aq_weight_sum > 0:
+            aq_score = aq_sum / aq_weight_sum
+        else:
+            aq_score = np.zeros((256, 256), dtype=np.float32)
+
+        ndvi_score = np.zeros((256, 256), dtype=np.float32)
+        ndvi_valid = np.zeros((256, 256), dtype=bool)
+        if (
+            options.include_ndvi
+            and ndvi_tile is not None
+            and ndvi_normalizer is not None
+        ):
+            ndvi_score = ndvi_normalizer(ndvi_tile)
+            ndvi_valid = np.isfinite(ndvi_tile)
+
+        fused_sum = np.zeros((256, 256), dtype=np.float32)
+        fused_weight = 0.0
+        if options.include_air_quality and aq_weight_sum > 0:
+            fused_sum += aq_score
+            fused_weight += 1.0
+
+        if options.include_ndvi and options.ndvi_weight > 0 and np.any(ndvi_valid):
+            fused_sum += ndvi_score * float(options.ndvi_weight)
+            fused_weight += float(options.ndvi_weight)
+
+        if fused_weight > 0:
+            score = fused_sum / fused_weight
+        else:
+            score = aq_score
 
         valid = np.isfinite(no2) | np.isfinite(pm25) | np.isfinite(pm10)
+        if options.include_ndvi and np.any(ndvi_valid):
+            valid = valid | ndvi_valid
         rgba = self._colorize(score, valid)
         image = Image.fromarray(rgba, mode="RGBA")
         buf = BytesIO()

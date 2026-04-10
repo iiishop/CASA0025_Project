@@ -8,3 +8,4 @@ Pillow==11.2.1
 networkx==3.4.2
 osmium==3.7.0
 tqdm==4.67.1
+earthengine-api==1.6.15

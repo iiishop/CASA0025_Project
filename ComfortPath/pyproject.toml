@@ -11,4 +11,5 @@ dependencies = [
   "rasterio==1.4.3",
   "numpy==2.2.6",
   "Pillow==11.2.1",
+  "earthengine-api==1.6.15",
 ]

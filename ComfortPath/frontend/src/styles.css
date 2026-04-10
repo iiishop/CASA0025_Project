@@ -96,6 +96,26 @@ h1 {
   font-size: 0.95rem;
 }
 
+.slider-row.with-toggle {
+  grid-template-columns: 64px 20px 1fr 52px;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 8px 0 10px;
+  color: var(--text-soft);
+  font-size: 0.93rem;
+}
+
+.tiny-checkbox {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
 .slider-row strong {
   color: var(--text-deep);
 }

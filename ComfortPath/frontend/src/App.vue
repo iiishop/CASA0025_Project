@@ -7,6 +7,7 @@ const backendBaseUrl = import.meta.env.VITE_BACKEND_BASE_URL || "http://127.0.0.
 const mapContainer = ref(null);
 const mapRef = ref(null);
 const latestMeta = ref(null);
+const latestNdviMeta = ref(null);
 const errorMessage = ref("");
 const loading = ref(false);
 const osmRoadLayerEnabled = ref(false);
@@ -25,6 +26,10 @@ let roadLastDispatchAt = 0;
 const ROAD_REFRESH_THROTTLE_MS = 140;
 
 const weights = ref({ no2: 0.4, pm25: 0.35, pm10: 0.25 });
+const aqEnabled = ref(true);
+const pollutantEnabled = ref({ no2: true, pm25: true, pm10: true });
+const ndviEnabled = ref(false);
+const ndviWeight = ref(0.3);
 
 const totalWeight = computed(() =>
   Number((weights.value.no2 + weights.value.pm25 + weights.value.pm10).toFixed(2)),
@@ -47,11 +52,25 @@ async function fetchLatestMeta(signal) {
   latestMeta.value = await response.json();
 }
 
+async function fetchLatestNdviMeta(signal) {
+  const response = await fetch(`${backendBaseUrl}/meta/ndvi/latest`, { signal });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch NDVI metadata: ${response.status}`);
+  }
+  latestNdviMeta.value = await response.json();
+}
+
 function buildNormalTileUrl() {
   const params = new URLSearchParams({
     no2_weight: String(weights.value.no2),
     pm25_weight: String(weights.value.pm25),
     pm10_weight: String(weights.value.pm10),
+    ndvi_weight: String(ndviWeight.value),
+    include_air_quality: String(aqEnabled.value),
+    include_no2: String(pollutantEnabled.value.no2),
+    include_pm25: String(pollutantEnabled.value.pm25),
+    include_pm10: String(pollutantEnabled.value.pm10),
+    include_ndvi: String(ndviEnabled.value),
   });
   return `${backendBaseUrl}/tiles/air-quality/{z}/{x}/{y}.png?${params.toString()}`;
 }
@@ -299,6 +318,7 @@ async function refreshAirQualityLayer() {
 
   try {
     await fetchLatestMeta(activeController.signal);
+    await fetchLatestNdviMeta(activeController.signal);
     if (requestId !== latestRequestId) {
       return;
     }
@@ -453,9 +473,25 @@ watch(
   { deep: true },
 );
 
+watch(
+  () => ({
+    aqEnabled: aqEnabled.value,
+    ndviEnabled: ndviEnabled.value,
+    ndviWeight: ndviWeight.value,
+    no2Enabled: pollutantEnabled.value.no2,
+    pm25Enabled: pollutantEnabled.value.pm25,
+    pm10Enabled: pollutantEnabled.value.pm10,
+  }),
+  () => {
+    queueRefresh();
+  },
+  { deep: true },
+);
+
 onMounted(async () => {
   try {
     await fetchLatestMeta();
+    await fetchLatestNdviMeta();
     initMap();
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : String(error);
@@ -493,9 +529,14 @@ onBeforeUnmount(() => {
 
       <div class="card">
         <h2>Weights</h2>
+        <label class="toggle-row">
+          <span>Include Air Quality</span>
+          <input v-model="aqEnabled" type="checkbox" />
+        </label>
 
-        <label class="slider-row">
+        <label class="slider-row with-toggle">
           <span>NO2</span>
+          <input v-model="pollutantEnabled.no2" type="checkbox" class="tiny-checkbox" />
           <input
             type="range"
             min="0"
@@ -507,8 +548,9 @@ onBeforeUnmount(() => {
           <strong>{{ sliderPercents.no2 }}%</strong>
         </label>
 
-        <label class="slider-row">
+        <label class="slider-row with-toggle">
           <span>PM2.5</span>
+          <input v-model="pollutantEnabled.pm25" type="checkbox" class="tiny-checkbox" />
           <input
             type="range"
             min="0"
@@ -520,8 +562,9 @@ onBeforeUnmount(() => {
           <strong>{{ sliderPercents.pm25 }}%</strong>
         </label>
 
-        <label class="slider-row">
+        <label class="slider-row with-toggle">
           <span>PM10</span>
+          <input v-model="pollutantEnabled.pm10" type="checkbox" class="tiny-checkbox" />
           <input
             type="range"
             min="0"
@@ -534,6 +577,26 @@ onBeforeUnmount(() => {
         </label>
 
         <p class="sum-line">Total: {{ totalWeight }}</p>
+      </div>
+
+      <div class="card">
+        <h2>NDVI (GEE)</h2>
+        <label class="toggle-row">
+          <span>Include NDVI</span>
+          <input v-model="ndviEnabled" type="checkbox" />
+        </label>
+        <label class="slider-row">
+          <span>NDVI weight</span>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            :value="ndviWeight"
+            @input="ndviWeight = Number($event.target.value)"
+          />
+          <strong>{{ Math.round(ndviWeight * 100) }}%</strong>
+        </label>
       </div>
 
       <div class="card">
@@ -559,6 +622,13 @@ onBeforeUnmount(() => {
         <p><span>Source:</span> {{ latestMeta.source }}</p>
         <p><span>Year:</span> {{ latestMeta.year }}</p>
         <p><span>Resolution:</span> {{ latestMeta.resolution }}</p>
+      </div>
+
+      <div class="card meta-card" v-if="latestNdviMeta">
+        <h2>NDVI data</h2>
+        <p><span>Source:</span> {{ latestNdviMeta.source }}</p>
+        <p><span>Year:</span> {{ latestNdviMeta.year }}</p>
+        <p><span>Resolution:</span> {{ latestNdviMeta.resolution }}</p>
       </div>
 
       <p v-if="loading" class="status">Updating raster layer...</p>

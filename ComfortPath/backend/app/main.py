@@ -7,7 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import networkx as nx
 
 from .air_quality_source import AirQualityRouteSource, RouteAirWeights
-from .laei_service import AirQualityWeights, LAEIService
+from .laei_service import AirQualityWeights, FusionOptions, LAEIService
+from .ndvi_service import NDVIService
 from .osm_service import OSMWalkService, RouteRequest
 
 
@@ -24,7 +25,9 @@ app.add_middleware(
 
 LAEI_DATA_DIR = Path(__file__).resolve().parents[1] / "data" / "laei"
 OSM_DATA_DIR = Path(__file__).resolve().parents[1] / "data" / "osm"
+NDVI_DATA_DIR = Path(__file__).resolve().parents[1] / "data" / "ndvi"
 laei_service = LAEIService(LAEI_DATA_DIR)
+ndvi_service = NDVIService(NDVI_DATA_DIR)
 osm_service = OSMWalkService(
     pbf_path=OSM_DATA_DIR / "London.osm.pbf",
     cache_path=OSM_DATA_DIR / "london_walk_graph.pkl",
@@ -49,6 +52,10 @@ def startup_event() -> None:
         laei_service.load()
     except Exception as exc:
         startup_errors["laei"] = str(exc)
+    try:
+        ndvi_service.load()
+    except Exception as exc:
+        startup_errors["ndvi"] = str(exc)
 
 
 def ensure_ready(*services: str) -> None:
@@ -65,6 +72,7 @@ def health() -> dict[str, str]:
     return {
         "status": "degraded" if startup_errors else "ok",
         "laei": "not_loaded" if "laei" in startup_errors else "loaded",
+        "ndvi": "not_loaded" if "ndvi" in startup_errors else "loaded",
         "osm": "loaded" if osm_state["loaded"] else "lazy_not_loaded",
     }
 
@@ -79,13 +87,21 @@ def factors() -> dict:
                 "default_weight": 1.0,
                 "range": [0.0, 1.0],
                 "unit": "score_0_100",
-            }
+            },
+            {
+                "id": "ndvi",
+                "label": "NDVI",
+                "default_weight": 0.0,
+                "range": [0.0, 1.0],
+                "unit": "normalized_0_1",
+            },
         ],
         "weights_schema": {
             "air_quality": {
                 "components": ["no2", "pm25", "pm10"],
                 "default": {"no2": 0.4, "pm25": 0.35, "pm10": 0.25},
-            }
+            },
+            "ndvi": {"default": 0.0},
         },
     }
 
@@ -101,30 +117,67 @@ def latest_air_quality_meta() -> dict:
         ) from exc
 
 
+@app.get("/meta/ndvi/latest")
+def latest_ndvi_meta() -> dict:
+    try:
+        ensure_ready("ndvi")
+        return ndvi_service.metadata()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to fetch NDVI metadata: {exc}"
+        ) from exc
+
+
 @app.get("/tiles/air-quality")
 def air_quality_tiles(
     request: Request,
     no2_weight: float = Query(default=0.4, ge=0.0, le=1.0),
     pm25_weight: float = Query(default=0.35, ge=0.0, le=1.0),
     pm10_weight: float = Query(default=0.25, ge=0.0, le=1.0),
+    ndvi_weight: float = Query(default=0.0, ge=0.0, le=1.0),
+    include_air_quality: bool = Query(default=True),
+    include_no2: bool = Query(default=True),
+    include_pm25: bool = Query(default=True),
+    include_pm10: bool = Query(default=True),
+    include_ndvi: bool = Query(default=False),
 ) -> dict:
     try:
         ensure_ready("laei")
+        if include_ndvi:
+            ensure_ready("ndvi")
         base = str(request.base_url).rstrip("/")
         tile_url = (
             f"{base}/tiles/air-quality/{{z}}/{{x}}/{{y}}.png"
             f"?no2_weight={no2_weight}&pm25_weight={pm25_weight}&pm10_weight={pm10_weight}"
+            f"&ndvi_weight={ndvi_weight}"
+            f"&include_air_quality={str(include_air_quality).lower()}"
+            f"&include_no2={str(include_no2).lower()}"
+            f"&include_pm25={str(include_pm25).lower()}"
+            f"&include_pm10={str(include_pm10).lower()}"
+            f"&include_ndvi={str(include_ndvi).lower()}"
         )
         return {
-            "layer": "air_quality",
+            "layer": "comfort_score",
             "tile_url": tile_url,
             "visualization": {
                 "min": 0,
                 "max": 100,
                 "palette": ["2c7bb6", "a7d7f0", "fef3c7", "f97316", "b91c1c"],
             },
-            "weights": {"no2": no2_weight, "pm25": pm25_weight, "pm10": pm10_weight},
-            "note": "LAEI 2022 static raster tile endpoint.",
+            "weights": {
+                "no2": no2_weight,
+                "pm25": pm25_weight,
+                "pm10": pm10_weight,
+                "ndvi": ndvi_weight,
+            },
+            "switches": {
+                "air_quality": include_air_quality,
+                "no2": include_no2,
+                "pm25": include_pm25,
+                "pm10": include_pm10,
+                "ndvi": include_ndvi,
+            },
+            "note": "Combined comfort score tile endpoint with LAEI + NDVI.",
         }
     except Exception as exc:
         raise HTTPException(
@@ -140,9 +193,23 @@ def air_quality_tile_png(
     no2_weight: float = Query(default=0.4, ge=0.0, le=1.0),
     pm25_weight: float = Query(default=0.35, ge=0.0, le=1.0),
     pm10_weight: float = Query(default=0.25, ge=0.0, le=1.0),
+    ndvi_weight: float = Query(default=0.0, ge=0.0, le=1.0),
+    include_air_quality: bool = Query(default=True),
+    include_no2: bool = Query(default=True),
+    include_pm25: bool = Query(default=True),
+    include_pm10: bool = Query(default=True),
+    include_ndvi: bool = Query(default=False),
 ) -> Response:
     try:
         ensure_ready("laei")
+        if include_ndvi:
+            ensure_ready("ndvi")
+            ndvi_tile = ndvi_service.read_tile(z=z, x=x, y=y)
+            ndvi_normalizer = ndvi_service.normalize
+        else:
+            ndvi_tile = None
+            ndvi_normalizer = None
+
         png = laei_service.render_tile_png(
             z=z,
             x=x,
@@ -150,6 +217,16 @@ def air_quality_tile_png(
             weights=AirQualityWeights(
                 no2=no2_weight, pm25=pm25_weight, pm10=pm10_weight
             ),
+            options=FusionOptions(
+                include_air_quality=include_air_quality,
+                include_no2=include_no2,
+                include_pm25=include_pm25,
+                include_pm10=include_pm10,
+                include_ndvi=include_ndvi,
+                ndvi_weight=ndvi_weight,
+            ),
+            ndvi_tile=ndvi_tile,
+            ndvi_normalizer=ndvi_normalizer,
         )
         return tile_png_response(png)
     except Exception as exc:
