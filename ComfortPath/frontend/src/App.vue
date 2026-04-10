@@ -3,21 +3,26 @@ import { computed, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import maplibregl from "maplibre-gl";
 
 const backendBaseUrl = import.meta.env.VITE_BACKEND_BASE_URL || "http://127.0.0.1:8000";
-const ROAD_BUFFER_PX = 3;
-const ROAD_OVERLAY_ENABLED = false;
 
 const mapContainer = ref(null);
 const mapRef = ref(null);
 const latestMeta = ref(null);
 const errorMessage = ref("");
 const loading = ref(false);
+const osmRoadLayerEnabled = ref(false);
+const osmLoading = ref(false);
+const osmLoadProgress = ref(0);
+const osmVisibleCount = ref(0);
+const osmBytesLoaded = ref(0);
+const osmBytesTotal = ref(0);
 let refreshTimer = null;
+let roadRefreshTimer = null;
 let latestRequestId = 0;
+let latestRoadRequestId = 0;
 let activeController = null;
-let lastTileMode = "normal";
+let activeRoadController = null;
 
 const weights = ref({ no2: 0.4, pm25: 0.35, pm10: 0.25 });
-const roadFocusEnabled = ref(false);
 
 const totalWeight = computed(() =>
   Number((weights.value.no2 + weights.value.pm25 + weights.value.pm10).toFixed(2)),
@@ -49,21 +54,17 @@ function buildNormalTileUrl() {
   return `${backendBaseUrl}/tiles/air-quality/{z}/{x}/{y}.png?${params.toString()}`;
 }
 
-function buildRoadFocusTileUrl() {
+function buildOsmRoadVectorUrl(map) {
+  const bounds = map.getBounds();
+  const zoom = Math.floor(map.getZoom());
   const params = new URLSearchParams({
-    no2_weight: String(weights.value.no2),
-    pm25_weight: String(weights.value.pm25),
-    pm10_weight: String(weights.value.pm10),
-    road_buffer_px: String(ROAD_BUFFER_PX),
+    lon_min: String(bounds.getWest()),
+    lat_min: String(bounds.getSouth()),
+    lon_max: String(bounds.getEast()),
+    lat_max: String(bounds.getNorth()),
+    zoom: String(zoom),
   });
-  return `${backendBaseUrl}/tiles/air-quality-road/{z}/{x}/{y}.png?${params.toString()}`;
-}
-
-function buildOsmRoadOverlayTileUrl() {
-  const params = new URLSearchParams({
-    road_buffer_px: String(ROAD_BUFFER_PX),
-  });
-  return `${backendBaseUrl}/tiles/osm-road-overlay/{z}/{x}/{y}.png?${params.toString()}`;
+  return `${backendBaseUrl}/vectors/osm/roads?${params.toString()}`;
 }
 
 function initMap() {
@@ -98,31 +99,59 @@ function initMap() {
   mapRef.value = map;
 
   map.on("load", async () => {
-    if (ROAD_OVERLAY_ENABLED) {
-      ensureRoadOverlayLayer(map);
-    }
+    ensureRoadVectorLayer(map);
     await refreshAirQualityLayer();
+  });
+
+  map.on("moveend", () => {
+    if (osmRoadLayerEnabled.value) {
+      queueRoadRefresh();
+    }
+  });
+
+  map.on("move", () => {
+    if (osmRoadLayerEnabled.value) {
+      queueRoadRefresh();
+    }
+  });
+
+  map.on("zoomend", () => {
+    if (osmRoadLayerEnabled.value) {
+      queueRoadRefresh();
+    }
   });
 }
 
-function ensureRoadOverlayLayer(map) {
-  if (!map.getSource("osm-road-overlay-source")) {
-    map.addSource("osm-road-overlay-source", {
-      type: "raster",
-      tiles: [buildOsmRoadOverlayTileUrl()],
-      tileSize: 256,
+function ensureRoadVectorLayer(map) {
+  if (!map.getSource("osm-road-vector-source")) {
+    map.addSource("osm-road-vector-source", {
+      type: "geojson",
+      data: {
+        type: "FeatureCollection",
+        features: [],
+      },
     });
   }
 
-  if (!map.getLayer("osm-road-overlay-layer")) {
+  if (!map.getLayer("osm-road-vector-layer")) {
     map.addLayer({
-      id: "osm-road-overlay-layer",
-      type: "raster",
-      source: "osm-road-overlay-source",
+      id: "osm-road-vector-layer",
+      type: "line",
+      source: "osm-road-vector-source",
       paint: {
-        "raster-opacity": 0.86,
-        "raster-fade-duration": 0,
-        "raster-resampling": "linear",
+        "line-color": "#18d0a5",
+        "line-opacity": 0.84,
+        "line-width": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          9,
+          0.7,
+          12,
+          1.2,
+          15,
+          2.4,
+        ],
       },
       layout: {
         visibility: "none",
@@ -134,10 +163,124 @@ function ensureRoadOverlayLayer(map) {
 function syncRoadOverlayVisibility() {
   const map = mapRef.value;
   if (!map) return;
-  const visibility = roadFocusEnabled.value ? "visible" : "none";
-  if (map.getLayer("osm-road-overlay-layer")) {
-    map.setLayoutProperty("osm-road-overlay-layer", "visibility", visibility);
+  const visibility = osmRoadLayerEnabled.value ? "visible" : "none";
+  if (map.getLayer("osm-road-vector-layer")) {
+    map.setLayoutProperty("osm-road-vector-layer", "visibility", visibility);
   }
+}
+
+async function refreshRoadVectorLayer() {
+  const map = mapRef.value;
+  if (!map || !map.isStyleLoaded()) return;
+
+  const requestId = ++latestRoadRequestId;
+  if (activeRoadController) {
+    activeRoadController.abort();
+  }
+  activeRoadController = new AbortController();
+
+  osmLoading.value = true;
+  osmLoadProgress.value = Math.max(osmLoadProgress.value, 3);
+  osmBytesLoaded.value = 0;
+  osmBytesTotal.value = 0;
+
+  try {
+    const response = await fetch(buildOsmRoadVectorUrl(map), {
+      signal: activeRoadController.signal,
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to load OSM roads: ${response.status}`);
+    }
+    if (requestId !== latestRoadRequestId) {
+      return;
+    }
+
+    const contentLength = Number(response.headers.get("content-length") || 0);
+    if (Number.isFinite(contentLength) && contentLength > 0) {
+      osmBytesTotal.value = contentLength;
+    }
+
+    let data;
+    if (!response.body) {
+      data = await response.json();
+      osmLoadProgress.value = 100;
+    } else {
+      const reader = response.body.getReader();
+      const chunks = [];
+      let received = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        received += value.length;
+        osmBytesLoaded.value = received;
+        if (osmBytesTotal.value > 0) {
+          osmLoadProgress.value = Math.min(
+            99,
+            Math.round((received / osmBytesTotal.value) * 100),
+          );
+        } else {
+          const pseudo = Math.round(100 * (1 - Math.exp(-received / 350000)));
+          osmLoadProgress.value = Math.min(95, Math.max(6, pseudo));
+        }
+      }
+
+      const merged = new Uint8Array(received);
+      let offset = 0;
+      for (const chunk of chunks) {
+        merged.set(chunk, offset);
+        offset += chunk.length;
+      }
+
+      const text = new TextDecoder("utf-8").decode(merged);
+      data = JSON.parse(text);
+      osmLoadProgress.value = 100;
+      osmBytesLoaded.value = received;
+      if (!osmBytesTotal.value) {
+        osmBytesTotal.value = received;
+      }
+    }
+
+    osmVisibleCount.value = Array.isArray(data.features) ? data.features.length : 0;
+    const source = map.getSource("osm-road-vector-source");
+    if (source && typeof source.setData === "function") {
+      source.setData(data);
+    }
+
+    setTimeout(() => {
+      if (requestId === latestRoadRequestId) {
+        osmLoading.value = false;
+        osmLoadProgress.value = 0;
+        osmBytesLoaded.value = 0;
+        osmBytesTotal.value = 0;
+      }
+    }, 180);
+  } catch (error) {
+    if (error?.name !== "AbortError") {
+      errorMessage.value = error instanceof Error ? error.message : String(error);
+      osmLoading.value = false;
+      osmLoadProgress.value = 0;
+      osmBytesLoaded.value = 0;
+      osmBytesTotal.value = 0;
+    }
+  } finally {
+    if (requestId !== latestRoadRequestId) {
+      return;
+    }
+  }
+}
+
+function formatBytes(value) {
+  if (!value || value <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  let size = value;
+  let idx = 0;
+  while (size >= 1024 && idx < units.length - 1) {
+    size /= 1024;
+    idx += 1;
+  }
+  return `${size.toFixed(idx === 0 ? 0 : 1)} ${units[idx]}`;
 }
 
 async function refreshAirQualityLayer() {
@@ -153,18 +296,16 @@ async function refreshAirQualityLayer() {
   errorMessage.value = "";
 
   try {
+    await fetchLatestMeta(activeController.signal);
+    if (requestId !== latestRequestId) {
+      return;
+    }
+
     const map = mapRef.value;
     const existingSource = map.getSource("air-quality-source");
-    const selectedTileUrl = roadFocusEnabled.value
-      ? buildRoadFocusTileUrl()
-      : buildNormalTileUrl();
-    const currentMode = roadFocusEnabled.value ? "road-focus" : "normal";
+    const selectedTileUrl = buildNormalTileUrl();
 
-    if (
-      existingSource &&
-      typeof existingSource.setTiles === "function" &&
-      lastTileMode === currentMode
-    ) {
+    if (existingSource && typeof existingSource.setTiles === "function") {
       existingSource.setTiles([selectedTileUrl]);
     } else {
       if (map.getLayer("air-quality-raster")) {
@@ -193,25 +334,9 @@ async function refreshAirQualityLayer() {
         },
       });
     }
-    lastTileMode = currentMode;
-
-    if (ROAD_OVERLAY_ENABLED) {
-      const overlayTileUrl = buildOsmRoadOverlayTileUrl();
-      const overlaySource = map.getSource("osm-road-overlay-source");
-      if (overlaySource && typeof overlaySource.setTiles === "function") {
-        overlaySource.setTiles([overlayTileUrl]);
-      }
-    }
 
     if (map.getLayer("air-quality-raster")) {
-      map.setPaintProperty(
-        "air-quality-raster",
-        "raster-opacity",
-        roadFocusEnabled.value ? 0.95 : 0.82,
-      );
-    }
-    if (ROAD_OVERLAY_ENABLED) {
-      syncRoadOverlayVisibility();
+      map.setPaintProperty("air-quality-raster", "raster-opacity", 0.82);
     }
 
   } catch (error) {
@@ -236,9 +361,33 @@ function queueRefresh() {
   }, 280);
 }
 
-function toggleRoadFocus() {
-  roadFocusEnabled.value = !roadFocusEnabled.value;
-  queueRefresh();
+function queueRoadRefresh() {
+  osmLoading.value = true;
+  osmLoadProgress.value = Math.max(osmLoadProgress.value, 2);
+  if (roadRefreshTimer) {
+    clearTimeout(roadRefreshTimer);
+  }
+  roadRefreshTimer = setTimeout(() => {
+    if (mapRef.value?.isStyleLoaded()) {
+      refreshRoadVectorLayer();
+    }
+  }, 220);
+}
+
+function toggleOsmRoadLayer() {
+  osmRoadLayerEnabled.value = !osmRoadLayerEnabled.value;
+  syncRoadOverlayVisibility();
+  if (osmRoadLayerEnabled.value) {
+    queueRoadRefresh();
+  } else {
+    if (activeRoadController) {
+      activeRoadController.abort();
+    }
+    osmLoading.value = false;
+    osmLoadProgress.value = 0;
+    osmBytesLoaded.value = 0;
+    osmBytesTotal.value = 0;
+  }
 }
 
 function normalizeWeights(changedKey) {
@@ -294,8 +443,14 @@ onBeforeUnmount(() => {
   if (refreshTimer) {
     clearTimeout(refreshTimer);
   }
+  if (roadRefreshTimer) {
+    clearTimeout(roadRefreshTimer);
+  }
   if (activeController) {
     activeController.abort();
+  }
+  if (activeRoadController) {
+    activeRoadController.abort();
   }
   if (mapRef.value) {
     mapRef.value.remove();
@@ -309,8 +464,8 @@ onBeforeUnmount(() => {
       <p class="eyebrow">ComfortPath</p>
       <h1>London Air Quality Layer</h1>
       <p class="subtitle">
-        LAEI NO2 + PM2.5 + PM10 fusion. Road Focus keeps the full air-quality surface,
-        while smoothly increasing opacity near OSM roads and fading away from roads.
+        LAEI NO2 + PM2.5 + PM10 fusion is rendered as an independent air-quality layer.
+        OSM roads are rendered as a separate overlay layer.
       </p>
 
       <div class="card">
@@ -359,10 +514,20 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="card">
-        <h2>Road Focus Filter</h2>
-        <button class="focus-button" @click="toggleRoadFocus">
-          {{ roadFocusEnabled ? "Disable Road Focus" : "Enable Road Focus" }}
+        <h2>OSM Roads (Vector)</h2>
+        <button class="focus-button" @click="toggleOsmRoadLayer">
+          {{ osmRoadLayerEnabled ? "Hide OSM Roads" : "Show OSM Roads" }}
         </button>
+        <p v-if="osmRoadLayerEnabled" class="sum-line">Visible segments: {{ osmVisibleCount }}</p>
+        <div v-if="osmLoading" class="progress-wrap">
+          <div class="progress-track">
+            <div class="progress-fill" :style="{ width: `${osmLoadProgress}%` }" />
+          </div>
+          <p class="progress-label">
+            Refreshing OSM roads... {{ Math.round(osmLoadProgress) }}%
+            ({{ formatBytes(osmBytesLoaded) }} / {{ formatBytes(osmBytesTotal) }})
+          </p>
+        </div>
       </div>
 
       <div class="card meta-card" v-if="latestMeta">

@@ -3,16 +3,13 @@ from __future__ import annotations
 import math
 import pickle
 import threading
-from collections import OrderedDict
 from dataclasses import dataclass
-from io import BytesIO
 from pathlib import Path
 from typing import Callable
 
 import networkx as nx
 import numpy as np
 import osmium
-from PIL import Image, ImageDraw, ImageFilter
 from tqdm import tqdm
 
 
@@ -39,6 +36,30 @@ ALLOWED_HIGHWAYS = {
 NO_FOOT_VALUES = {"no", "private"}
 ONEWAY_TRUE = {"yes", "1", "true"}
 ONEWAY_REVERSE = {"-1"}
+
+HIGHWAY_MIN_ZOOM = {
+    "motorway": 9,
+    "motorway_link": 10,
+    "trunk": 9,
+    "trunk_link": 10,
+    "primary": 10,
+    "primary_link": 11,
+    "secondary": 11,
+    "secondary_link": 12,
+    "tertiary": 12,
+    "tertiary_link": 13,
+    "unclassified": 13,
+    "residential": 14,
+    "service": 14,
+    "living_street": 14,
+    "pedestrian": 14,
+    "track": 14,
+    "path": 15,
+    "footway": 15,
+    "cycleway": 15,
+    "steps": 15,
+    "corridor": 15,
+}
 
 
 def haversine_m(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
@@ -164,30 +185,12 @@ class OSMWalkService:
         self.node_index: dict[int, int] = {}
         self.edge_segments: list[tuple[float, float, float, float]] = []
         self.edge_bounds: list[tuple[float, float, float, float]] = []
+        self.edge_props: list[dict] = []
         self.edge_spatial_index: dict[tuple[int, int], list[int]] = {}
         self.index_cell_deg = 0.01
         self._loaded = False
         self._load_error: str | None = None
         self._load_lock = threading.Lock()
-        self._mask_cache: OrderedDict[tuple[int, int, int, int, int], bytes] = (
-            OrderedDict()
-        )
-        self._mask_cache_limit = 512
-        self._disk_mask_max_zoom = 13
-        self._mask_cache_root = self.cache_path.parent / "road_mask_cache"
-
-    def _disk_mask_path(
-        self, z: int, x: int, y: int, buffer_px: int, apply_threshold: bool
-    ) -> Path:
-        threshold_key = "th" if apply_threshold else "smooth"
-        return (
-            self._mask_cache_root
-            / threshold_key
-            / f"b{int(buffer_px)}"
-            / f"z{z}"
-            / str(x)
-            / f"{y}.png"
-        )
 
     def _do_load(self) -> None:
         if self.cache_path.exists():
@@ -248,9 +251,10 @@ class OSMWalkService:
     def _build_edge_index(self) -> None:
         self.edge_segments = []
         self.edge_bounds = []
+        self.edge_props = []
         self.edge_spatial_index = {}
 
-        for u, v in self.graph.edges():
+        for u, v, data in self.graph.edges(data=True):
             u_node = self.graph.nodes[u]
             v_node = self.graph.nodes[v]
             lon1 = float(u_node["lon"])
@@ -266,6 +270,16 @@ class OSMWalkService:
             seg_id = len(self.edge_segments)
             self.edge_segments.append((lon1, lat1, lon2, lat2))
             self.edge_bounds.append((min_lon, min_lat, max_lon, max_lat))
+            self.edge_props.append(
+                {
+                    "edge_id": int(data.get("edge_id", seg_id)),
+                    "length_m": float(data.get("length_m", 0.0)),
+                    "highway": data.get("highway"),
+                    "surface": data.get("surface"),
+                    "way_id": int(data.get("way_id", -1)),
+                    "name": data.get("name"),
+                }
+            )
 
             x0 = math.floor(min_lon / self.index_cell_deg)
             x1 = math.floor(max_lon / self.index_cell_deg)
@@ -287,20 +301,6 @@ class OSMWalkService:
             self.graph = pickle.load(f)
         self._build_index()
 
-    @staticmethod
-    def tile_bounds_wgs84(z: int, x: int, y: int) -> tuple[float, float, float, float]:
-        n = 2**z
-        lon_left = x / n * 360.0 - 180.0
-        lon_right = (x + 1) / n * 360.0 - 180.0
-
-        def lat_from_tile(ty: int) -> float:
-            val = math.pi * (1 - 2 * ty / n)
-            return math.degrees(math.atan(math.sinh(val)))
-
-        lat_top = float(lat_from_tile(y))
-        lat_bottom = float(lat_from_tile(y + 1))
-        return lon_left, lat_bottom, lon_right, lat_top
-
     def _candidate_segments(
         self,
         lon_min: float,
@@ -321,99 +321,53 @@ class OSMWalkService:
                     candidates.add(seg_id)
         return list(candidates)
 
-    def road_mask_png(
+    def roads_geojson(
         self,
-        z: int,
-        x: int,
-        y: int,
-        buffer_px: int = 3,
-        apply_threshold: bool = True,
-    ) -> bytes:
-        cache_key = (z, x, y, buffer_px, int(apply_threshold))
-        cached = self._mask_cache.get(cache_key)
-        if cached is not None:
-            self._mask_cache.move_to_end(cache_key)
-            return cached
+        lon_min: float,
+        lat_min: float,
+        lon_max: float,
+        lat_max: float,
+        zoom: int,
+    ) -> dict:
+        if zoom < 9:
+            return {"type": "FeatureCollection", "features": []}
 
-        disk_path: Path | None = None
-        if z <= self._disk_mask_max_zoom:
-            disk_path = self._disk_mask_path(z, x, y, buffer_px, apply_threshold)
-            if disk_path.exists():
-                value = disk_path.read_bytes()
-                self._mask_cache[cache_key] = value
-                if len(self._mask_cache) > self._mask_cache_limit:
-                    self._mask_cache.popitem(last=False)
-                return value
-
-        lon_min, lat_min, lon_max, lat_max = self.tile_bounds_wgs84(z, x, y)
-
-        margin_lon = (lon_max - lon_min) * max(1, buffer_px) / 256.0
-        margin_lat = (lat_max - lat_min) * max(1, buffer_px) / 256.0
-        margin_deg = max(margin_lon, margin_lat)
         candidates = self._candidate_segments(
-            lon_min, lat_min, lon_max, lat_max, margin_deg
+            lon_min=lon_min,
+            lat_min=lat_min,
+            lon_max=lon_max,
+            lat_max=lat_max,
+            margin_deg=0.0,
         )
 
-        mask = Image.new("L", (256, 256), 0)
-        draw = ImageDraw.Draw(mask)
-        if z <= 10:
-            zoom_scale = 0.22
-        elif z <= 12:
-            zoom_scale = 0.4
-        elif z <= 14:
-            zoom_scale = 0.65
-        else:
-            zoom_scale = 1.0
-
-        width_px = max(1, int(round((buffer_px * 1.1) * zoom_scale)))
-
-        lon_span = max(lon_max - lon_min, 1e-9)
-        lat_span = max(lat_max - lat_min, 1e-9)
-
-        for seg_id in candidates:
+        features: list[dict] = []
+        for seg_id in sorted(candidates):
             b_lon_min, b_lat_min, b_lon_max, b_lat_max = self.edge_bounds[seg_id]
             if (
-                b_lon_max < lon_min - margin_deg
-                or b_lon_min > lon_max + margin_deg
-                or b_lat_max < lat_min - margin_deg
-                or b_lat_min > lat_max + margin_deg
+                b_lon_max < lon_min
+                or b_lon_min > lon_max
+                or b_lat_max < lat_min
+                or b_lat_min > lat_max
             ):
                 continue
 
             lon1, lat1, lon2, lat2 = self.edge_segments[seg_id]
-            x1p = (lon1 - lon_min) / lon_span * 256.0
-            y1p = (lat_max - lat1) / lat_span * 256.0
-            x2p = (lon2 - lon_min) / lon_span * 256.0
-            y2p = (lat_max - lat2) / lat_span * 256.0
-            draw.line([(x1p, y1p), (x2p, y2p)], fill=255, width=width_px)
+            props = self.edge_props[seg_id]
+            highway = (props.get("highway") or "").lower()
+            if zoom < HIGHWAY_MIN_ZOOM.get(highway, 15):
+                continue
+            features.append(
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [[lon1, lat1], [lon2, lat2]],
+                    },
+                    "properties": props,
+                }
+            )
 
-        if buffer_px > 1:
-            blur_radius = max(0.2, buffer_px * 0.35 * zoom_scale)
-            mask = mask.filter(ImageFilter.GaussianBlur(radius=blur_radius))
-
-        if apply_threshold:
-            if z <= 10:
-                threshold = 52
-            elif z <= 12:
-                threshold = 24
-            else:
-                threshold = 8
-
-            mask = mask.point(lambda p: 0 if p < threshold else p)
-
-        buf = BytesIO()
-        mask.save(buf, format="PNG")
-        value = buf.getvalue()
-        self._mask_cache[cache_key] = value
-        if len(self._mask_cache) > self._mask_cache_limit:
-            self._mask_cache.popitem(last=False)
-
-        if disk_path is not None:
-            disk_path.parent.mkdir(parents=True, exist_ok=True)
-            if not disk_path.exists():
-                disk_path.write_bytes(value)
-
-        return value
+        return {"type": "FeatureCollection", "features": features}
 
     def _nearest_node(self, lon: float, lat: float) -> int:
         if self.node_lons is None or self.node_lats is None or self.node_ids is None:

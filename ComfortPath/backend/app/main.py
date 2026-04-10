@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-from collections import OrderedDict
-from io import BytesIO
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 import networkx as nx
-from PIL import Image
 
 from .air_quality_source import AirQualityRouteSource, RouteAirWeights
 from .laei_service import AirQualityWeights, LAEIService
@@ -34,13 +31,6 @@ osm_service = OSMWalkService(
 )
 air_route_source = AirQualityRouteSource(laei_service)
 startup_errors: dict[str, str] = {}
-road_tile_cache: OrderedDict[tuple[int, int, int, int, int, int, int], bytes] = (
-    OrderedDict()
-)
-ROAD_TILE_CACHE_LIMIT = 512
-ROAD_ALPHA_MIN = 5
-ROAD_ALPHA_MAX = 245
-ROAD_ALPHA_GAMMA = 1.35
 TILE_CACHE_CONTROL = "public, max-age=600"
 
 
@@ -117,7 +107,6 @@ def air_quality_tiles(
     no2_weight: float = Query(default=0.4, ge=0.0, le=1.0),
     pm25_weight: float = Query(default=0.35, ge=0.0, le=1.0),
     pm10_weight: float = Query(default=0.25, ge=0.0, le=1.0),
-    road_buffer_px: int = Query(default=3, ge=1, le=20),
 ) -> dict:
     try:
         ensure_ready("laei")
@@ -126,27 +115,15 @@ def air_quality_tiles(
             f"{base}/tiles/air-quality/{{z}}/{{x}}/{{y}}.png"
             f"?no2_weight={no2_weight}&pm25_weight={pm25_weight}&pm10_weight={pm10_weight}"
         )
-        road_focus_tile_url = (
-            f"{base}/tiles/air-quality-road/{{z}}/{{x}}/{{y}}.png"
-            f"?no2_weight={no2_weight}&pm25_weight={pm25_weight}&pm10_weight={pm10_weight}"
-            f"&road_buffer_px={road_buffer_px}"
-        )
-        road_overlay_tile_url = (
-            f"{base}/tiles/osm-road-overlay/{{z}}/{{x}}/{{y}}.png"
-            f"?road_buffer_px={road_buffer_px}"
-        )
         return {
             "layer": "air_quality",
             "tile_url": tile_url,
-            "road_focus_tile_url": road_focus_tile_url,
-            "road_overlay_tile_url": road_overlay_tile_url,
             "visualization": {
                 "min": 0,
                 "max": 100,
                 "palette": ["2c7bb6", "a7d7f0", "fef3c7", "f97316", "b91c1c"],
             },
             "weights": {"no2": no2_weight, "pm25": pm25_weight, "pm10": pm10_weight},
-            "road_buffer_px": road_buffer_px,
             "note": "LAEI 2022 static raster tile endpoint.",
         }
     except Exception as exc:
@@ -181,121 +158,31 @@ def air_quality_tile_png(
         ) from exc
 
 
-@app.get("/tiles/road-mask/{z}/{x}/{y}.png")
-def road_mask_tile_png(
-    z: int,
-    x: int,
-    y: int,
-    road_buffer_px: int = Query(default=3, ge=1, le=20),
-) -> Response:
+@app.get("/vectors/osm/roads")
+def osm_roads_vector(
+    lon_min: float = Query(..., ge=-180.0, le=180.0),
+    lat_min: float = Query(..., ge=-90.0, le=90.0),
+    lon_max: float = Query(..., ge=-180.0, le=180.0),
+    lat_max: float = Query(..., ge=-90.0, le=90.0),
+    zoom: int = Query(default=12, ge=0, le=22),
+) -> dict:
     try:
         osm_service.ensure_loaded()
-        png = osm_service.road_mask_png(z=z, x=x, y=y, buffer_px=road_buffer_px)
-        return tile_png_response(png)
+        if lon_min >= lon_max or lat_min >= lat_max:
+            raise HTTPException(status_code=400, detail="Invalid bounding box")
+
+        return osm_service.roads_geojson(
+            lon_min=lon_min,
+            lat_min=lat_min,
+            lon_max=lon_max,
+            lat_max=lat_max,
+            zoom=zoom,
+        )
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(
-            status_code=500, detail=f"Failed to render road mask tile: {exc}"
-        ) from exc
-
-
-@app.get("/tiles/osm-road-overlay/{z}/{x}/{y}.png")
-def osm_road_overlay_tile_png(
-    z: int,
-    x: int,
-    y: int,
-    road_buffer_px: int = Query(default=3, ge=1, le=20),
-) -> Response:
-    try:
-        osm_service.ensure_loaded()
-        mask_png = osm_service.road_mask_png(
-            z=z,
-            x=x,
-            y=y,
-            buffer_px=road_buffer_px,
-            apply_threshold=False,
-        )
-
-        mask_img = Image.open(BytesIO(mask_png)).convert("L")
-        alpha = Image.eval(mask_img, lambda p: int((p / 255.0) * 165))
-        channel_r = Image.new("L", mask_img.size, color=12)
-        channel_g = Image.new("L", mask_img.size, color=24)
-        channel_b = Image.new("L", mask_img.size, color=32)
-        overlay = Image.merge("RGBA", (channel_r, channel_g, channel_b, alpha))
-
-        out = BytesIO()
-        overlay.save(out, format="PNG")
-        return tile_png_response(out.getvalue())
-    except Exception as exc:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to render OSM road overlay tile: {exc}"
-        ) from exc
-
-
-@app.get("/tiles/air-quality-road/{z}/{x}/{y}.png")
-def air_quality_road_tile_png(
-    z: int,
-    x: int,
-    y: int,
-    no2_weight: float = Query(default=0.4, ge=0.0, le=1.0),
-    pm25_weight: float = Query(default=0.35, ge=0.0, le=1.0),
-    pm10_weight: float = Query(default=0.25, ge=0.0, le=1.0),
-    road_buffer_px: int = Query(default=3, ge=1, le=20),
-) -> Response:
-    try:
-        cache_key = (
-            z,
-            x,
-            y,
-            int(round(no2_weight * 1000)),
-            int(round(pm25_weight * 1000)),
-            int(round(pm10_weight * 1000)),
-            int(road_buffer_px),
-        )
-        cached = road_tile_cache.get(cache_key)
-        if cached is not None:
-            road_tile_cache.move_to_end(cache_key)
-            return tile_png_response(cached)
-
-        ensure_ready("laei")
-        osm_service.ensure_loaded()
-        aq_png = laei_service.render_tile_png(
-            z=z,
-            x=x,
-            y=y,
-            weights=AirQualityWeights(
-                no2=no2_weight,
-                pm25=pm25_weight,
-                pm10=pm10_weight,
-            ),
-        )
-        mask_png = osm_service.road_mask_png(z=z, x=x, y=y, buffer_px=road_buffer_px)
-
-        aq_img = Image.open(BytesIO(aq_png)).convert("RGBA")
-        mask_img = Image.open(BytesIO(mask_png)).convert("L")
-
-        r, g, b, a = aq_img.split()
-
-        def alpha_transform(px: int) -> int:
-            t = max(0.0, min(px / 255.0, 1.0))
-            eased = t**ROAD_ALPHA_GAMMA
-            value = ROAD_ALPHA_MIN + int(
-                round(eased * (ROAD_ALPHA_MAX - ROAD_ALPHA_MIN))
-            )
-            return max(ROAD_ALPHA_MIN, min(value, ROAD_ALPHA_MAX))
-
-        new_alpha = Image.eval(mask_img, alpha_transform)
-        combined = Image.merge("RGBA", (r, g, b, new_alpha))
-
-        out = BytesIO()
-        combined.save(out, format="PNG")
-        out_value = out.getvalue()
-        road_tile_cache[cache_key] = out_value
-        if len(road_tile_cache) > ROAD_TILE_CACHE_LIMIT:
-            road_tile_cache.popitem(last=False)
-        return tile_png_response(out_value)
-    except Exception as exc:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to render air-quality-road tile: {exc}"
+            status_code=500, detail=f"Failed to render OSM vector roads: {exc}"
         ) from exc
 
 
