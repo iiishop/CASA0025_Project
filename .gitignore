@@ -67,3 +67,6 @@ ComfortPath/backend/data/**
 !ComfortPath/backend/data/.gitkeep
 ComfortPath/backend/data/osm/london_walk_graph.pkl
 ComfortPath/backend/data/osm/road_mask_cache/
+
+# Large data files
+*.gpkg
