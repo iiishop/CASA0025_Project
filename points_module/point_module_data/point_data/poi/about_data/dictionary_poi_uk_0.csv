@@ -1,0 +1,18 @@
+Variable,Description
+id,Unique identifying POI ID
+primary_name,Primary name
+main_category,Primary category
+alternate_category,List of alternative categories
+address,Unstructured Address
+locality,Locality
+postcode,Postcode
+region,Region
+country,Country code
+source,"Source of data point, either Meta or Microsoft (MSFT)"
+source_record_id,Source record ID
+lat,Latitude
+long,Longitude
+h3_15,H3 polygon (15 resolution)
+easting,Easting British National Grid
+northing,Northing British National Grid
+LSOA21CD,Lower layer Super Output Area Code 2021
