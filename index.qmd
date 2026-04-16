@@ -1,12 +1,18 @@
-# CASA00025 Group Project Title Here
+---
+title-block-banner: points_module/assets/nickype-crosswalk-868_512.gif
+title: "Comfort Path: an Interactive Walking Route Finder"
+css: docs/style.css
+---
 
 ## Project Summary 
 
-Fill in the sections below to provide a brief summary of your project. Each section should have no more than 100 words. Do not edit any of the headings.
+Our project enables a wide range of users to analyse the walkability of London’s streets and explore specific routes. Rather than imposing a single definition, the application allows users to apply their own walkability criteria.
 
-### Problem Statement 
+To support this, we break walkability down into a set of pre-computed parameters for each street segment. Users can then assign their own weights to these parameters based on what matters most to them. These user-defined weights are incorporated into a modified cost function within Dijkstra’s algorithm, enabling the system to compute the most suitable route according to each individual’s preferences.
 
-What is the problem you’re trying to address using this application? 
+### Problem Statement
+
+Existing studies have explored walkability and route attractiveness, with tools like the [Healthy Streets Index](https://www.healthystreets.com/maps/london) presenting results through colour-graded maps. However, these approaches rely on fixed indicator weights, limiting their ability to reflect individual user preferences and personal definitions of walkability.
 
 ### End User 
 
@@ -33,6 +39,7 @@ Replace the link below with the link to your application.
 <iframe src='https://ollielballinger.users.earthengine.app/view/turkey-earthquake' width='100%' height='700px'></iframe>
 
 :::
+
 ## How it Works 
 
 Use this section to explain how your application works using code blocks and text explanations (no more than 500 words excluding code):
@@ -51,5 +58,7 @@ You can include images:
 
 and math:
 $$ \Large t = {\frac{\overline{x_1}-\overline{x_2}} {\sqrt{\frac{s^2_1}{n_1} + \frac{s^2_2}{n_2}}}} $$
+
+
 
 

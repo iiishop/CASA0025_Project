@@ -5,7 +5,7 @@ project:
 book:
   title: "CASA0025 Final Assessment"
   author: "Group Name"
-  date: "01/01/2024"
+  date: "29/04/2026"
   chapters:
     - index.qmd
 
@@ -22,8 +22,14 @@ format:
   html:
     theme:
       dark: darkly
-      light: cosmo
+      light: litera
     code-copy: true
     code-overflow: wrap
     highlight-style: monokai.theme
     linkcolor: "#34a832"
+    toc: true
+    toc-title: "Comfort Path: an Interactive Walking Route Finder"
+    toc-depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: true

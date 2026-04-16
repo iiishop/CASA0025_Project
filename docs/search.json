@@ -1,31 +1,38 @@
 [
   {
+    "objectID": "points_module/road_sections_synthesis.html",
+    "href": "points_module/road_sections_synthesis.html",
+    "title": "",
+    "section": "",
+    "text": "This script calculates density of various point datasets along the road network. The output is the .gpkg file identical to the input roads file, with the new columns added representing: count, kde, and rank of points, by point type.\n\nimport math\nimport re\nfrom typing import Optional, Sequence\nfrom pathlib import Path\n\nimport numpy as np\nimport pandas as pd\nimport geopandas as gpd\nfrom shapely.geometry import Point, LineString, MultiLineString\nfrom network_kde import network_kde_on_lines\nfrom transfer_point_values_to_roads_by_matched_name import transfer_point_values_to_roads_by_matched_name\n\n\n# little function to define the file root on different machines\ndef find_qm_root(start_path: Path = Path.cwd(), anchor: str = \"CASA0025_Project\") -&gt; Path:\n    \"\"\"\n    Traverse up from the start_path until the anchor folder is found. Returns the path to the anchor folder.\n    \"\"\"\n    for parent in [start_path] + list(start_path.parents):\n        if parent.name == anchor:\n            return parent\n    raise FileNotFoundError(f\"Anchor folder '{anchor}' not found in path hierarchy.\")\n  \nqm_root = find_qm_root()\n\n\nroads_gdf = gpd.read_file(qm_root / \"point_module_data/road_lines/oproad_gpkg_gb/Data/oproad_london.gpkg\")\n\n\ncrime_gdf = gpd.read_file(qm_root / \"point_module_data/point_data/crime/crime_points.gpkg\")\n\n\nroads_crime = network_kde_on_lines(\n    point_gdf=crime_gdf,\n    line_gdf=roads_gdf,\n    value_name=\"crime\",\n    mode=\"all_only\",\n    bandwidth=100,\n    kernel=\"gaussian\",\n    target_crs=\"EPSG:27700\",\n    min_segment_length=90\n)\n\nProcessed 1000 eligible line segments...\nProcessed 2000 eligible line segments...\nProcessed 3000 eligible line segments...\nProcessed 4000 eligible line segments...\nProcessed 5000 eligible line segments...\nProcessed 6000 eligible line segments...\nProcessed 7000 eligible line segments...\nProcessed 8000 eligible line segments...\nProcessed 9000 eligible line segments...\nProcessed 10000 eligible line segments...\nProcessed 11000 eligible line segments...\nProcessed 12000 eligible line segments...\nProcessed 13000 eligible line segments...\nProcessed 14000 eligible line segments...\nProcessed 15000 eligible line segments...\nProcessed 16000 eligible line segments...\nProcessed 17000 eligible line segments...\nProcessed 18000 eligible line segments...\nProcessed 19000 eligible line segments...\nProcessed 20000 eligible line segments...\nProcessed 21000 eligible line segments...\nProcessed 23000 eligible line segments...\nProcessed 24000 eligible line segments...\nProcessed 25000 eligible line segments...\nProcessed 26000 eligible line segments...\nProcessed 28000 eligible line segments...\nProcessed 29000 eligible line segments...\nProcessed 30000 eligible line segments...\nProcessed 31000 eligible line segments...\nProcessed 32000 eligible line segments...\nProcessed 33000 eligible line segments...\nProcessed 34000 eligible line segments...\nProcessed 35000 eligible line segments...\nProcessed 36000 eligible line segments...\nProcessed 37000 eligible line segments...\nProcessed 38000 eligible line segments...\nProcessed 39000 eligible line segments...\nProcessed 40000 eligible line segments...\nProcessed 41000 eligible line segments...\nProcessed 42000 eligible line segments...\nProcessed 43000 eligible line segments...\nProcessed 44000 eligible line segments...\nProcessed 45000 eligible line segments...\nProcessed 46000 eligible line segments...\nProcessed 47000 eligible line segments...\nProcessed 48000 eligible line segments...\nProcessed 49000 eligible line segments...\nProcessed 50000 eligible line segments...\nProcessed 51000 eligible line segments...\nProcessed 52000 eligible line segments...\nProcessed 53000 eligible line segments...\nProcessed 54000 eligible line segments...\nProcessed 55000 eligible line segments...\nProcessed 56000 eligible line segments...\nProcessed 57000 eligible line segments...\nProcessed 58000 eligible line segments...\nProcessed 59000 eligible line segments...\nProcessed 60000 eligible line segments...\nProcessed 61000 eligible line segments...\nProcessed 62000 eligible line segments...\nProcessed 63000 eligible line segments...\nProcessed 64000 eligible line segments...\nProcessed 65000 eligible line segments...\nProcessed 66000 eligible line segments...\nProcessed 67000 eligible line segments...\nProcessed 68000 eligible line segments...\n\n\n\n# roads_crime.to_file(\"roads_crime.gpkg\", driver=\"GPKG\")\n\n\nlisted_gdf = gpd.read_file(qm_root / \"point_module_data/point_data/listed_b/listed_b_london.gpkg\")\n\n\nroads_crime_listed = network_kde_on_lines(\n    point_gdf=listed_gdf,\n    line_gdf=roads_crime,\n    value_name=\"history\",\n    mode=\"all_only\",\n    bandwidth=100,\n    kernel=\"gaussian\",\n    target_crs=\"EPSG:27700\",\n    min_segment_length=90\n)\n\nProcessed 2000 eligible line segments...\nProcessed 3000 eligible line segments...\nProcessed 8000 eligible line segments...\nProcessed 13000 eligible line segments...\nProcessed 18000 eligible line segments...\nProcessed 22000 eligible line segments...\nProcessed 23000 eligible line segments...\nProcessed 25000 eligible line segments...\nProcessed 28000 eligible line segments...\nProcessed 30000 eligible line segments...\nProcessed 34000 eligible line segments...\nProcessed 35000 eligible line segments...\nProcessed 37000 eligible line segments...\nProcessed 42000 eligible line segments...\nProcessed 46000 eligible line segments...\nProcessed 47000 eligible line segments...\nProcessed 48000 eligible line segments...\nProcessed 52000 eligible line segments...\nProcessed 57000 eligible line segments...\nProcessed 59000 eligible line segments...\nProcessed 60000 eligible line segments...\nProcessed 63000 eligible line segments...\nProcessed 68000 eligible line segments...\n\n\n\n# roads_crime_listed.to_file(\"roads_crime_listed.gpkg\", driver=\"GPKG\")\n\n\ncollisions_gdf = gpd.read_file(qm_root / \"point_module_data/point_data/collisions/collisions_2026_2023.gpkg\")\n\n\nroads_crime_listed_collisions = network_kde_on_lines(\n    point_gdf=collisions_gdf,\n    line_gdf=roads_crime_listed,\n    value_name=\"ped_collisions\",\n    mode=\"all_only\",\n    bandwidth=100,\n    kernel=\"gaussian\",\n    target_crs=\"EPSG:27700\",\n    min_segment_length=90\n)\n\nProcessed 1000 eligible line segments...\nProcessed 2000 eligible line segments...\nProcessed 3000 eligible line segments...\nProcessed 4000 eligible line segments...\nProcessed 5000 eligible line segments...\nProcessed 6000 eligible line segments...\nProcessed 7000 eligible line segments...\nProcessed 8000 eligible line segments...\nProcessed 9000 eligible line segments...\nProcessed 10000 eligible line segments...\nProcessed 11000 eligible line segments...\nProcessed 12000 eligible line segments...\nProcessed 13000 eligible line segments...\nProcessed 14000 eligible line segments...\nProcessed 15000 eligible line segments...\nProcessed 16000 eligible line segments...\nProcessed 17000 eligible line segments...\nProcessed 18000 eligible line segments...\nProcessed 19000 eligible line segments...\nProcessed 20000 eligible line segments...\nProcessed 21000 eligible line segments...\nProcessed 23000 eligible line segments...\nProcessed 24000 eligible line segments...\nProcessed 25000 eligible line segments...\nProcessed 26000 eligible line segments...\nProcessed 28000 eligible line segments...\nProcessed 29000 eligible line segments...\nProcessed 30000 eligible line segments...\nProcessed 31000 eligible line segments...\nProcessed 32000 eligible line segments...\nProcessed 33000 eligible line segments...\nProcessed 34000 eligible line segments...\nProcessed 35000 eligible line segments...\nProcessed 36000 eligible line segments...\nProcessed 37000 eligible line segments...\nProcessed 38000 eligible line segments...\nProcessed 39000 eligible line segments...\nProcessed 40000 eligible line segments...\nProcessed 41000 eligible line segments...\nProcessed 42000 eligible line segments...\nProcessed 43000 eligible line segments...\nProcessed 44000 eligible line segments...\nProcessed 45000 eligible line segments...\nProcessed 46000 eligible line segments...\nProcessed 47000 eligible line segments...\nProcessed 48000 eligible line segments...\nProcessed 49000 eligible line segments...\nProcessed 50000 eligible line segments...\nProcessed 51000 eligible line segments...\nProcessed 52000 eligible line segments...\nProcessed 53000 eligible line segments...\nProcessed 54000 eligible line segments...\nProcessed 55000 eligible line segments...\nProcessed 56000 eligible line segments...\nProcessed 57000 eligible line segments...\nProcessed 58000 eligible line segments...\nProcessed 59000 eligible line segments...\nProcessed 60000 eligible line segments...\nProcessed 61000 eligible line segments...\nProcessed 62000 eligible line segments...\nProcessed 63000 eligible line segments...\nProcessed 64000 eligible line segments...\nProcessed 65000 eligible line segments...\nProcessed 66000 eligible line segments...\nProcessed 67000 eligible line segments...\nProcessed 68000 eligible line segments...\n\n\n\n# roads_crime_listed_collisions.to_file(\"roads_crime_listed_collisions.gpkg\", driver=\"GPKG\")\n\n\npoi_gdf = gpd.read_file(qm_root / \"point_module_data/point_data/poi/data/poi_london.gpkg\")\n\n\nroads_crime_listed_collisions_poi = network_kde_on_lines(\n    point_gdf=poi_gdf,\n    line_gdf=roads_crime_listed_collisions,\n    value_name=\"poi\",\n    mode=\"all_only\",\n    bandwidth=100,\n    kernel=\"gaussian\",\n    target_crs=\"EPSG:27700\",\n    min_segment_length=90\n)\n\nProcessed 1000 eligible line segments...\nProcessed 2000 eligible line segments...\nProcessed 3000 eligible line segments...\nProcessed 4000 eligible line segments...\nProcessed 5000 eligible line segments...\nProcessed 6000 eligible line segments...\nProcessed 7000 eligible line segments...\nProcessed 8000 eligible line segments...\nProcessed 9000 eligible line segments...\nProcessed 10000 eligible line segments...\nProcessed 11000 eligible line segments...\nProcessed 12000 eligible line segments...\nProcessed 13000 eligible line segments...\nProcessed 14000 eligible line segments...\nProcessed 15000 eligible line segments...\nProcessed 16000 eligible line segments...\nProcessed 17000 eligible line segments...\nProcessed 18000 eligible line segments...\nProcessed 19000 eligible line segments...\nProcessed 20000 eligible line segments...\nProcessed 21000 eligible line segments...\nProcessed 22000 eligible line segments...\nProcessed 23000 eligible line segments...\nProcessed 24000 eligible line segments...\nProcessed 25000 eligible line segments...\nProcessed 26000 eligible line segments...\nProcessed 28000 eligible line segments...\nProcessed 29000 eligible line segments...\nProcessed 30000 eligible line segments...\nProcessed 31000 eligible line segments...\nProcessed 32000 eligible line segments...\nProcessed 33000 eligible line segments...\nProcessed 34000 eligible line segments...\nProcessed 35000 eligible line segments...\nProcessed 36000 eligible line segments...\nProcessed 37000 eligible line segments...\nProcessed 38000 eligible line segments...\nProcessed 39000 eligible line segments...\nProcessed 40000 eligible line segments...\nProcessed 41000 eligible line segments...\nProcessed 42000 eligible line segments...\nProcessed 43000 eligible line segments...\nProcessed 44000 eligible line segments...\nProcessed 45000 eligible line segments...\nProcessed 46000 eligible line segments...\nProcessed 47000 eligible line segments...\nProcessed 48000 eligible line segments...\nProcessed 49000 eligible line segments...\nProcessed 50000 eligible line segments...\nProcessed 51000 eligible line segments...\nProcessed 52000 eligible line segments...\nProcessed 53000 eligible line segments...\nProcessed 54000 eligible line segments...\nProcessed 55000 eligible line segments...\nProcessed 56000 eligible line segments...\nProcessed 57000 eligible line segments...\nProcessed 58000 eligible line segments...\nProcessed 59000 eligible line segments...\nProcessed 60000 eligible line segments...\nProcessed 61000 eligible line segments...\nProcessed 62000 eligible line segments...\nProcessed 63000 eligible line segments...\nProcessed 64000 eligible line segments...\nProcessed 65000 eligible line segments...\nProcessed 67000 eligible line segments...\nProcessed 68000 eligible line segments...\n\n\n\n# roads_crime_listed_collisions_poi.to_file(\"roads_crime_listed_collisions_poi.gpkg\", driver=\"GPKG\")\n\n\ntraffic_gdf = gpd.read_file(qm_root / \"point_module_data/point_data/traffic/traffic_2023_2026.gpkg\")\n\n\n# roads_crime_listed_collisions_poi\n\n\nroads_crime_listed_collisions_poi_traffic = transfer_point_values_to_roads_by_matched_name(\n    point_gdf=traffic_gdf,\n    road_gdf=roads_crime_listed_collisions_poi,\n    road_name_col=\"name_1\",\n    point_value_cols=[\"all_motor_vehicles\", \"all_HGVs\"],\n    target_crs=\"EPSG:27700\",\n    max_match_distance=100,\n    prefix=\"count_\"\n)\n\n\n# roads_crime_listed_collisions_poi_traffic[roads_crime_listed_collisions_poi_traffic[\"_road_name_match\"] == \"Warwick Grove\"]\n\n\nroads_crime_listed_collisions_poi_traffic.to_file(\"roads_crime_listed_collisions_poi_traffic.gpkg\", driver=\"GPKG\")\n\n\n# roads_crime_listed_collisions_poi_traffic.columns\n\nIndex(['id', 'fictitious', 'road_classification', 'road_function',\n       'form_of_way', 'road_classification_number', 'name_1', 'name_1_lang',\n       'name_2', 'name_2_lang', 'road_structure', 'length', 'length_uom',\n       'loop', 'primary_route', 'trunk_road', 'start_node', 'end_node',\n       'road_number_toid', 'road_name_toid', 'geometry', 'segment_length',\n       'kde_eligible', 'count_crime', 'kde_crime', 'rank_crime',\n       'count_history', 'kde_history', 'rank_history', 'count_poi', 'kde_poi',\n       'rank_poi', '_road_name_match', 'count_all_motor_vehicles_med',\n       'count_all_hgvs_med', 'count_n_points'],\n      dtype='object')\n\n\n\n# roads_crime_listed_collisions_poi_traffic.drop(axis=0, columns=['count_ped_collisions',\n#        'kde_ped_collisions', 'rank_ped_collisions'], inplace=True)\n\n\n# roads_crime_listed_collisions_poi_traffic = network_kde_on_lines(\n#     point_gdf=collisions_gdf,\n#     line_gdf=roads_crime_listed_collisions_poi_traffic,\n#     value_name=\"ped_collisions\",\n#     mode=\"all_only\",\n#     bandwidth=100,\n#     kernel=\"gaussian\",\n#     target_crs=\"EPSG:27700\",\n#     min_segment_length=90\n# )"
+  },
+  {
     "objectID": "index.html",
     "href": "index.html",
-    "title": "CASA00025 Group Project Title Here",
+    "title": "Comfort Path: an Interactive Walking Route Finder",
     "section": "",
-    "text": "Fill in the sections below to provide a brief summary of your project. Each section should have no more than 100 words. Do not edit any of the headings.\n\n\nWhat is the problem you’re trying to address using this application?\n\n\n\nWho are you building this application for? How does it address a need this community has?\n\n\n\nWhat data are you using?\n\n\n\nHow are you using this data to address the problem?\n\n\n\nHow does your application’s interface work to address the needs of your end user?\n\n\n\n\nReplace the link below with the link to your application.\n\n\n\n\n\n\n\nUse this section to explain how your application works using code blocks and text explanations (no more than 500 words excluding code):\nMap.setCenter(35.51898, 33.90153, 15);\n\nMap.setOptions(\"satellite\");\n\nvar aoi = ee.Geometry.Point(35.51898, 33.90153).buffer(3000);\nYou can include images:\n\n\n\nPixelwise T-Test, 2018\n\n\nand math: \\[ \\Large t = {\\frac{\\overline{x_1}-\\overline{x_2}} {\\sqrt{\\frac{s^2_1}{n_1} + \\frac{s^2_2}{n_2}}}} \\]"
+    "text": "Our project enables a wide range of users to analyse the walkability of London’s streets and explore specific routes. Rather than imposing a single definition, the application allows users to apply their own walkability criteria.\nTo support this, we break walkability down into a set of pre-computed parameters for each street segment. Users can then assign their own weights to these parameters based on what matters most to them. These user-defined weights are incorporated into a modified cost function within Dijkstra’s algorithm, enabling the system to compute the most suitable route according to each individual’s preferences.\n\n\nExisting studies have explored walkability and route attractiveness, with tools like the Healthy Streets Index presenting results through colour-graded maps. However, these approaches rely on fixed indicator weights, limiting their ability to reflect individual user preferences and personal definitions of walkability.\n\n\n\nWho are you building this application for? How does it address a need this community has?\n\n\n\nWhat data are you using?\n\n\n\nHow are you using this data to address the problem?\n\n\n\nHow does your application’s interface work to address the needs of your end user?"
   },
   {
     "objectID": "index.html#project-summary",
     "href": "index.html#project-summary",
-    "title": "CASA00025 Group Project Title Here",
+    "title": "Comfort Path: an Interactive Walking Route Finder",
     "section": "",
-    "text": "Fill in the sections below to provide a brief summary of your project. Each section should have no more than 100 words. Do not edit any of the headings.\n\n\nWhat is the problem you’re trying to address using this application?\n\n\n\nWho are you building this application for? How does it address a need this community has?\n\n\n\nWhat data are you using?\n\n\n\nHow are you using this data to address the problem?\n\n\n\nHow does your application’s interface work to address the needs of your end user?"
+    "text": "Our project enables a wide range of users to analyse the walkability of London’s streets and explore specific routes. Rather than imposing a single definition, the application allows users to apply their own walkability criteria.\nTo support this, we break walkability down into a set of pre-computed parameters for each street segment. Users can then assign their own weights to these parameters based on what matters most to them. These user-defined weights are incorporated into a modified cost function within Dijkstra’s algorithm, enabling the system to compute the most suitable route according to each individual’s preferences.\n\n\nExisting studies have explored walkability and route attractiveness, with tools like the Healthy Streets Index presenting results through colour-graded maps. However, these approaches rely on fixed indicator weights, limiting their ability to reflect individual user preferences and personal definitions of walkability.\n\n\n\nWho are you building this application for? How does it address a need this community has?\n\n\n\nWhat data are you using?\n\n\n\nHow are you using this data to address the problem?\n\n\n\nHow does your application’s interface work to address the needs of your end user?"
   },
   {
     "objectID": "index.html#the-application",
     "href": "index.html#the-application",
-    "title": "CASA00025 Group Project Title Here",
-    "section": "",
-    "text": "Replace the link below with the link to your application."
+    "title": "Comfort Path: an Interactive Walking Route Finder",
+    "section": "The Application",
+    "text": "The Application\nReplace the link below with the link to your application."
   },
   {
     "objectID": "index.html#how-it-works",
     "href": "index.html#how-it-works",
-    "title": "CASA00025 Group Project Title Here",
-    "section": "",
-    "text": "Use this section to explain how your application works using code blocks and text explanations (no more than 500 words excluding code):\nMap.setCenter(35.51898, 33.90153, 15);\n\nMap.setOptions(\"satellite\");\n\nvar aoi = ee.Geometry.Point(35.51898, 33.90153).buffer(3000);\nYou can include images:\n\n\n\nPixelwise T-Test, 2018\n\n\nand math: \\[ \\Large t = {\\frac{\\overline{x_1}-\\overline{x_2}} {\\sqrt{\\frac{s^2_1}{n_1} + \\frac{s^2_2}{n_2}}}} \\]"
+    "title": "Comfort Path: an Interactive Walking Route Finder",
+    "section": "How it Works",
+    "text": "How it Works\nUse this section to explain how your application works using code blocks and text explanations (no more than 500 words excluding code):\nMap.setCenter(35.51898, 33.90153, 15);\n\nMap.setOptions(\"satellite\");\n\nvar aoi = ee.Geometry.Point(35.51898, 33.90153).buffer(3000);\nYou can include images:\n\n\n\nPixelwise T-Test, 2018\n\n\nand math: \\[ \\Large t = {\\frac{\\overline{x_1}-\\overline{x_2}} {\\sqrt{\\frac{s^2_1}{n_1} + \\frac{s^2_2}{n_2}}}} \\]"
   },
   {
     "objectID": "readme.html",
@@ -33,5 +40,124 @@
     "title": "",
     "section": "",
     "text": "Use this repository to host a website for your CASA0025 final project by following these stpes:\n\nclone this repository\ninstall quarto\nedit the ‘index.qmd’ file with the contents of your project\nusing terminal, navigate to the project directory and run “quarto render”\npush the changes to your github repository\non github, navigate to Settings&gt;Pages&gt;Build and Deployment. Make sure that under “Source” it says “deploy from branch”. Under “Branch”, select “Main” in the first dropdown and “Docs” under the second drop down. Then press “Save”\n\nYour website should now be available under https://{your_username}.github.io/{your_repo_name}"
+  },
+  {
+    "objectID": "index.html#embedded-demo-version-of-your-previous-interface",
+    "href": "index.html#embedded-demo-version-of-your-previous-interface",
+    "title": "CASA00025 Group Project Title Here",
+    "section": "",
+    "text": "{{ subtitle }}\n\n&lt;button @click=“count++”&gt;Clicked {{ count }} times"
+  },
+  {
+    "objectID": "main_body.html",
+    "href": "main_body.html",
+    "title": "",
+    "section": "",
+    "text": "Our project enables a wide range of users to analyse the walkability of London’s streets in a personalised way. Rather than imposing a single definition, the application allows users to apply their own walkability criteria.\nTo support this, we break walkability down into a set of pre-computed parameters for each street segment. Users can then assign their own weights to these parameters based on what matters most to them. These user-defined weights are incorporated into a modified cost function within Dijkstra’s algorithm, enabling the system to compute the most suitable route according to each individual’s preferences.\n\n\nWhat is the problem you’re trying to address using this application?\n\n\n\nWho are you building this application for? How does it address a need this community has?\n\n\n\nWhat data are you using?\n\n\n\nHow are you using this data to address the problem?\n\n\n\nHow does your application’s interface work to address the needs of your end user?"
+  },
+  {
+    "objectID": "main_body.html#project-summary",
+    "href": "main_body.html#project-summary",
+    "title": "",
+    "section": "",
+    "text": "Our project enables a wide range of users to analyse the walkability of London’s streets in a personalised way. Rather than imposing a single definition, the application allows users to apply their own walkability criteria.\nTo support this, we break walkability down into a set of pre-computed parameters for each street segment. Users can then assign their own weights to these parameters based on what matters most to them. These user-defined weights are incorporated into a modified cost function within Dijkstra’s algorithm, enabling the system to compute the most suitable route according to each individual’s preferences.\n\n\nWhat is the problem you’re trying to address using this application?\n\n\n\nWho are you building this application for? How does it address a need this community has?\n\n\n\nWhat data are you using?\n\n\n\nHow are you using this data to address the problem?\n\n\n\nHow does your application’s interface work to address the needs of your end user?"
+  },
+  {
+    "objectID": "main_body.html#the-application",
+    "href": "main_body.html#the-application",
+    "title": "",
+    "section": "The Application",
+    "text": "The Application\nReplace the link below with the link to your application."
+  },
+  {
+    "objectID": "main_body.html#how-it-works",
+    "href": "main_body.html#how-it-works",
+    "title": "",
+    "section": "How it Works",
+    "text": "How it Works\nUse this section to explain how your application works using code blocks and text explanations (no more than 500 words excluding code):\nMap.setCenter(35.51898, 33.90153, 15);\n\nMap.setOptions(\"satellite\");\n\nvar aoi = ee.Geometry.Point(35.51898, 33.90153).buffer(3000);\nYou can include images:\n\n\n\nPixelwise T-Test, 2018\n\n\nand math: \\[ \\Large t = {\\frac{\\overline{x_1}-\\overline{x_2}} {\\sqrt{\\frac{s^2_1}{n_1} + \\frac{s^2_2}{n_2}}}} \\]"
+  },
+  {
+    "objectID": "index.html#b58fc729-690b-4000-b19f-365a4093b2ff7b7b3c20766964656f2068747470733a2f2f796f7574752e62652f776f39765a63636d7177632077696474683d2232353022206865696768743d2231373522203e7d7d",
+    "href": "index.html#b58fc729-690b-4000-b19f-365a4093b2ff7b7b3c20766964656f2068747470733a2f2f796f7574752e62652f776f39765a63636d7177632077696474683d2232353022206865696768743d2231373522203e7d7d",
+    "title": "",
+    "section": "",
+    "text": "toc: true toc-title: “Comfort Path: an Interactive Walking Route Finder” toc-depth: 3 toc_float: collapsed: false smooth_scroll: true —"
+  },
+  {
+    "objectID": "index.html#b58fc729-690b-4000-b19f-365a4093b2ff7b7b3c20766964656f2068747470733a2f2f796f7574752e62652f776f39765a63636d7177632077696474683d223235303022206865696768743d223137353022203e7d7d",
+    "href": "index.html#b58fc729-690b-4000-b19f-365a4093b2ff7b7b3c20766964656f2068747470733a2f2f796f7574752e62652f776f39765a63636d7177632077696474683d223235303022206865696768743d223137353022203e7d7d",
+    "title": "",
+    "section": "",
+    "text": "toc: true toc-title: “Comfort Path: an Interactive Walking Route Finder” toc-depth: 3 toc_float: collapsed: false smooth_scroll: true —"
+  },
+  {
+    "objectID": "index.html#b58fc729-690b-4000-b19f-365a4093b2ff7b7b3c20766964656f2068747470733a2f2f796f7574752e62652f776f39765a63636d7177632077696474683d2232353022206865696768743d223137353022203e7d7d",
+    "href": "index.html#b58fc729-690b-4000-b19f-365a4093b2ff7b7b3c20766964656f2068747470733a2f2f796f7574752e62652f776f39765a63636d7177632077696474683d2232353022206865696768743d223137353022203e7d7d",
+    "title": "",
+    "section": "",
+    "text": "toc: true toc-title: “Comfort Path: an Interactive Walking Route Finder” toc-depth: 3 toc_float: collapsed: false smooth_scroll: true —"
+  },
+  {
+    "objectID": "index.html#b58fc729-690b-4000-b19f-365a4093b2ff7b7b3c20766964656f2068747470733a2f2f796f7574752e62652f776f39765a63636d7177632077696474683d223130303022206865696768743d2234303022203e7d7d",
+    "href": "index.html#b58fc729-690b-4000-b19f-365a4093b2ff7b7b3c20766964656f2068747470733a2f2f796f7574752e62652f776f39765a63636d7177632077696474683d223130303022206865696768743d2234303022203e7d7d",
+    "title": "",
+    "section": "",
+    "text": "toc: true toc-title: “Comfort Path: an Interactive Walking Route Finder” toc-depth: 3 toc_float: collapsed: false smooth_scroll: true —"
+  },
+  {
+    "objectID": "index.html#b58fc729-690b-4000-b19f-365a4093b2ff7b7b3c20766964656f2068747470733a2f2f796f7574752e62652f776f39765a63636d7177632077696474683d223130302522206865696768743d223130302522203e7d7d",
+    "href": "index.html#b58fc729-690b-4000-b19f-365a4093b2ff7b7b3c20766964656f2068747470733a2f2f796f7574752e62652f776f39765a63636d7177632077696474683d223130302522206865696768743d223130302522203e7d7d",
+    "title": "",
+    "section": "",
+    "text": "toc: true toc-title: “Comfort Path: an Interactive Walking Route Finder” toc-depth: 3 toc_float: collapsed: false smooth_scroll: true —"
+  },
+  {
+    "objectID": "index.html#b58fc729-690b-4000-b19f-365a4093b2ff7b7b3c20766964656f20706f696e74735f6d6f64756c652f6173736574732f7472696d6d65645f766964656f2e6d70342077696474683d223130302522206865696768743d223130302522203e7d7d",
+    "href": "index.html#b58fc729-690b-4000-b19f-365a4093b2ff7b7b3c20766964656f20706f696e74735f6d6f64756c652f6173736574732f7472696d6d65645f766964656f2e6d70342077696474683d223130302522206865696768743d223130302522203e7d7d",
+    "title": "",
+    "section": "",
+    "text": "toc: true toc-title: “Comfort Path: an Interactive Walking Route Finder” toc-depth: 3 toc_float: collapsed: false smooth_scroll: true —"
+  },
+  {
+    "objectID": "index.html#slide-title",
+    "href": "index.html#slide-title",
+    "title": "",
+    "section": "## Slide Title",
+    "text": "## Slide Title\ntoc: true toc-title: “Comfort Path: an Interactive Walking Route Finder” toc-depth: 3 toc_float: collapsed: false smooth_scroll: true —"
+  },
+  {
+    "objectID": "index.html#section",
+    "href": "index.html#section",
+    "title": "",
+    "section": "##",
+    "text": "##\ntoc: true toc-title: “Comfort Path: an Interactive Walking Route Finder” toc-depth: 3 toc_float: collapsed: false smooth_scroll: true — ## {background-video=“https://youtu.be/wo9vZccmqwc?autoplay=1”}"
+  },
+  {
+    "objectID": "index.html#background-videovideo.mp4-background-video-looptrue-background-video-mutedtrue",
+    "href": "index.html#background-videovideo.mp4-background-video-looptrue-background-video-mutedtrue",
+    "title": "",
+    "section": "{{background-video=“video.mp4” background-video-loop=“true” background-video-muted=“true”}}",
+    "text": "{{background-video=“video.mp4” background-video-loop=“true” background-video-muted=“true”}}\ntoc: true toc-title: “Comfort Path: an Interactive Walking Route Finder” toc-depth: 3 toc_float: collapsed: false smooth_scroll: true —"
+  },
+  {
+    "objectID": "index.html#background-videohttpsyoutu.bewo9vzccmqwcautoplay1",
+    "href": "index.html#background-videohttpsyoutu.bewo9vzccmqwcautoplay1",
+    "title": "",
+    "section": "## background-video=“https://youtu.be/wo9vZccmqwc?autoplay=1”",
+    "text": "## background-video=“https://youtu.be/wo9vZccmqwc?autoplay=1”\ntoc: true toc-title: “Comfort Path: an Interactive Walking Route Finder” toc-depth: 3 toc_float: collapsed: false smooth_scroll: true — ## {background-video=“https://youtu.be/wo9vZccmqwc?autoplay=1”}"
+  },
+  {
+    "objectID": "index.html#b58fc729-690b-4000-b19f-365a4093b2ff7b7b3c20766964656f2068747470733a2f2f796f7574752e62652f776f39765a63636d717763206173706563742d726174696f3d2234783322203e7d7d",
+    "href": "index.html#b58fc729-690b-4000-b19f-365a4093b2ff7b7b3c20766964656f2068747470733a2f2f796f7574752e62652f776f39765a63636d717763206173706563742d726174696f3d2234783322203e7d7d",
+    "title": "",
+    "section": "",
+    "text": "toc: true toc-title: “Comfort Path: an Interactive Walking Route Finder” toc-depth: 3 toc_float: collapsed: false smooth_scroll: true — ## {background-video=“https://youtu.be/wo9vZccmqwc?autoplay=1”}"
+  },
+  {
+    "objectID": "hero.html",
+    "href": "hero.html",
+    "title": "",
+    "section": "",
+    "text": "#quarto-content, #quarto-document-content, main.content { padding-top: 0 !important; margin-top: 0 !important; }"
   }
 ]
