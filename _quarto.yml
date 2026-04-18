@@ -21,8 +21,8 @@ book:
 format:
   html:
     theme:
-      dark: darkly
       light: litera
+      dark: darkly
     code-copy: true
     code-overflow: wrap
     highlight-style: monokai.theme
