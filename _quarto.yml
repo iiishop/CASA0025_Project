@@ -18,6 +18,7 @@ book:
 
 
 
+
 format:
   html:
     theme:
@@ -26,10 +27,24 @@ format:
     code-copy: true
     code-overflow: wrap
     highlight-style: monokai.theme
-    linkcolor: "#34a832"
     toc: true
     toc-title: "Contents"
     toc-depth: 3
     toc_float:
       collapsed: false
       smooth_scroll: true
+
+website:
+  favicon: points_module/assets/flavicon.png
+  page-navigation: true
+  site-url: "https://maheer-maps.github.io/CASA25_Rasternauts/"
+  repo-url: "https://github.com/iiishop/CASA0025_Project"
+  page-footer:
+    background: "#2ba8e0"
+    foreground: "#00698e"
+    left: "<div style='text-align: left'>CASA0025 Group Project</div>"
+    right: 
+      - "<span style='margin-right: 5px;'>For all precomputation scripts and main app code, please visit:</span>"
+      - icon: github
+        href: https://github.com/Maheer-Maps/CASA25_Rasternauts/tree/main/GEE-scripts
+        target: "_blank" 

@@ -33,12 +33,12 @@ We  organised the data by walkability criteria that were used in calculations. F
 {"header":"Everyone feels welcome","body":"Everyone feels welcome","collapsed":true},
 {"header":"Shade and shelter","body":"Shade and shelter","collapsed":true},
 {"header":"Places to stop and rest","body":"Places to stop and rest","collapsed":true},
-{"header":"Not too noisy","body":"Not too noisy","collapsed":true},
+{"header":"Not too noisy","body":"**Road noise exposure** as a proxy for acoustic comfort © Crown copyright, Open Government Licence v3.0. [Source]()","collapsed":true},
 {"header":"People choose to walk and cycle","body":"People choose to walk and cycle","collapsed":true},
 {"header":"People feel safe","body":"**Safety from crime** represented with reported crime counts. Sourced using the Police API. Street-level crimes in the past year (2025) were added. UK Home Office via data.police.uk, OGL v3.0. [Source](https://data.police.uk/docs/) <br> **Safety from traffic** represented with counts of pedestrian collisions occurred 2023-26 (all injury levels). Several years ensure sufficient density of points. © TfL [Source](https://experience.arcgis.com/experience/f817ed4d14b7434584959384d560f1fc/page/Page)","collapsed":true},
 {"header":"Things to see and do","body":"**Street activity** represented by points of interest such as shops and services. The data for this research have been provided by the Geographic Data Service (GeoDS), a Smart Data Research UK Investment: ES/Z504464/1. [Source](https://data.geods.ac.uk/dataset/point-of-interest-data-for-the-united-kingdom) <br> **Richness of historic environment** represented with listed buildings as points. © Crown Copyright 2026. Contains Ordnance Survey data © Crown copyright and database right 2026. Released under OGL. [Source](https://opendata-historicengland.hub.arcgis.com/datasets/historicengland::listed-building-points/explore)","collapsed":true},
-{"header":"People feel relaxed","body":"People feel relaxed","collapsed":true},
-{"header":"Clean air","body":"Clean air","collapsed":true},
+{"header":"People feel relaxed","body":"**Green space exposure**, represented with vegetation cover (NDVI) derived from Sentinel-2 COPERNICUS/S2_SR_HARMONIZED GEE layer. Contains modified Copernicus Sentinel data (2023), processed via Google Earth Engine. [Source](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR_HARMONIZED)","collapsed":true},
+{"header":"Clean air","body":"**Atmospheric emissions**, representing street-level air pollution – NO2, PM2.5, PM10. Greater London Authority (GLA), London Datastore. [Source](https://data.london.gov.uk/dataset/london-atmospheric-emissions-inventory-laei-2022-2lg5g/)","collapsed":true},
 {"header":"Supporting data","body":"Supporting data","collapsed":true}
 ]' >}}
 
@@ -46,7 +46,11 @@ We  organised the data by walkability criteria that were used in calculations. F
 
 ![Healthy Streets Index indicators](points_module/assets/Healthy+Streets+Indicators+Diagram_NEW.png){width=50% fig-align="left" .lightbox}
 
-How are you using this data to address the problem?
+Street segments
+
+Raster data
+
+Point data
 
 ### Interface
 
