@@ -1,5 +1,5 @@
 ---
-title-block-banner: points_module/assets/nickype-crosswalk-868_512.gif
+title-block-banner: points_module/assets/Sequence01_4-ezgif.com-optimize.gif
 title: "Comfort Path: an Interactive Walking Route Finder"
 css:
     - https://cdn.jsdelivr.net/npm/bootswatch@5.3.0/dist/litera/bootstrap.min.css
@@ -14,7 +14,8 @@ To support this, we break walkability down into a set of pre-computed parameters
 
 ### Problem Statement
 
-Existing studies have explored walkability and route attractiveness, with tools like the [Healthy Streets Index](https://www.healthystreets.com/maps/london) presenting results through graduated colour maps. However, these approaches rely on fixed indicator weights, limiting their ability to reflect individual user preferences and personal definitions of walkability.
+Existing studies have explored walkability and route attractiveness, with tools like the [Healthy Streets Index](https://www.healthystreets.com/maps/london) presenting results through graduated colour maps.
+However, these approaches rely on fixed indicator weights, limiting their ability to reflect individual user preferences and personal definitions of walkability.
 
 ### End User
 
@@ -43,6 +44,8 @@ We  organised the data by walkability criteria that were used in calculations. F
 
 ### Methodology
 
+![Healthy Streets Index indicators](points_module/assets/Healthy+Streets+Indicators+Diagram_NEW.png){width=50% fig-align="left" .lightbox}
+
 How are you using this data to address the problem?
 
 ### Interface
@@ -70,14 +73,3 @@ Map.setOptions("satellite");
 
 var aoi = ee.Geometry.Point(35.51898, 33.90153).buffer(3000);
 ```
-
-You can include images:
-
-![Pixelwise T-Test, 2018](images/beirut_change_2020.jpg)
-
-and math:
-$$ \Large t = {\frac{\overline{x_1}-\overline{x_2}} {\sqrt{\frac{s^2_1}{n_1} + \frac{s^2_2}{n_2}}}} $$
-
-
-
-

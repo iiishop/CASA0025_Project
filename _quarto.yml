@@ -28,7 +28,7 @@ format:
     highlight-style: monokai.theme
     linkcolor: "#34a832"
     toc: true
-    toc-title: "Comfort Path: an Interactive Walking Route Finder"
+    toc-title: "Contents"
     toc-depth: 3
     toc_float:
       collapsed: false
