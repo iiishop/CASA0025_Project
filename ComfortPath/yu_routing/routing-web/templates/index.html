@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset='UTF-8' />
+  <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+  <title>CASA0025 Routing Prototype</title>
+
+  <link
+    rel='stylesheet'
+    href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+    integrity='sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY='
+    crossorigin=''
+  />
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+    }
+
+    #map {
+      width: 100%;
+      height: 100vh;
+    }
+
+    .info-panel {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      width: 340px;
+      max-height: calc(100vh - 20px);
+      overflow-y: auto;
+      background: rgba(255, 255, 255, 0.97);
+      border-radius: 10px;
+      padding: 14px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .info-panel h3 {
+      margin: 0 0 10px 0;
+      font-size: 18px;
+    }
+
+    .section {
+      margin-bottom: 12px;
+    }
+
+    .legend-line {
+      display: inline-block;
+      width: 18px;
+      height: 4px;
+      margin-right: 8px;
+      vertical-align: middle;
+      border-radius: 2px;
+    }
+
+    .shortest-line {
+      background: #1565c0;
+    }
+
+    .easiest-line {
+      background: #2e7d32;
+    }
+
+    .input-group {
+      margin-bottom: 10px;
+    }
+
+    .input-group label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .input-row input {
+      flex: 1;
+      border: 1px solid #d0d0d0;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 13px;
+      background: #f2f2f2;
+    }
+
+    button:hover {
+      background: #e6e6e6;
+    }
+
+    .primary-btn {
+      background: #1565c0;
+      color: white;
+    }
+
+    .primary-btn:hover {
+      background: #0f4f99;
+    }
+
+    .small-text {
+      color: #555;
+      font-size: 12px;
+    }
+
+    .selected-place {
+      margin-top: 4px;
+      padding: 6px 8px;
+      background: #f7f7f7;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #444;
+    }
+
+    .status-text {
+      color: #444;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .control-card {
+      margin-top: 8px;
+      padding: 10px;
+      border: 1px solid #e2e2e2;
+      border-radius: 8px;
+      background: #fafafa;
+    }
+
+    .control-card label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .control-card input[type='range'] {
+      width: 100%;
+    }
+
+    .control-value {
+      color: #1565c0;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    .coming-soon {
+      opacity: 0.7;
+    }
+
+    @media (max-width: 768px) {
+      .info-panel {
+        left: 10px;
+        right: 10px;
+        width: auto;
+        max-height: 50vh;
+      }
+
+      #map {
+        height: 100vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id='map'></div>
+
+  <div class='info-panel'>
+    <h3>Comfort Path Navigator</h3>
+
+    <div class='section'>
+      <div><span class='legend-line shortest-line'></span>Shortest Route</div>
+      <div><span class='legend-line easiest-line'></span>Personalised Route</div>
+    </div>
+
+    <div class='section small-text'>
+      <strong>How to use</strong><br>
+      1. Enter an origin / destination address and click "Search"<br>
+      2. Or click "Use My Location" to set the origin automatically<br>
+      3. You can also click the map to select points manually<br>
+      4. Adjust the steepness level to demonstrate personalised routing<br>
+      5. Once both points are set, click "Find Route"
+    </div>
+
+    <div class='section'>
+      <strong>User Preferences</strong>
+
+      <div class='control-card'>
+        <label for='steepnessSlider'>
+          <span>Steepness level</span>
+          <span id='steepnessValue' class='control-value'></span>
+        </label>
+        <input id='steepnessSlider' type='range' min='1' max='3' step='1' value='2' />
+      </div>
+
+      <div class='control-card coming-soon'>
+        <label for='crimeSlider'>
+          <span>Crime level</span>
+          <span class='control-value'>Coming soon</span>
+        </label>
+        <input id='crimeSlider' type='range' min='0' max='10' step='1' value='0' disabled />
+        <div class='small-text'>Reserved for future safety data integration.</div>
+      </div>
+
+      <div class='control-card coming-soon'>
+        <label for='noiseSlider'>
+          <span>Noise level</span>
+          <span class='control-value'>Coming soon</span>
+        </label>
+        <input id='noiseSlider' type='range' min='0' max='10' step='1' value='0' disabled />
+        <div class='small-text'>Reserved for future noise exposure data integration.</div>
+      </div>
+    </div>
+
+    <div class='section'>
+      <div class='input-group'>
+        <label for='originInput'>Origin</label>
+        <div class='input-row'>
+          <input id='originInput' type='text' placeholder="Example: King's Cross Station" />
+          <button id='searchOriginBtn' type='button'>Search</button>
+        </div>
+        <div class='btn-row'>
+          <button id='locateBtn' type='button'>Use My Location</button>
+        </div>
+        <div id='originSelected' class='selected-place'>Not set</div>
+      </div>
+
+      <div class='input-group'>
+        <label for='destinationInput'>Destination</label>
+        <div class='input-row'>
+          <input id='destinationInput' type='text' placeholder='Example: Waterloo Station' />
+          <button id='searchDestinationBtn' type='button'>Search</button>
+        </div>
+        <div id='destinationSelected' class='selected-place'>Not set</div>
+      </div>
+
+      <div class='btn-row'>
+        <button id='routeBtn' class='primary-btn' type='button'>Find Route</button>
+        <button id='resetBtn' type='button'>Reset</button>
+      </div>
+      <div id='searchStatus' class='status-text'>Please set an origin and destination first.</div>
+    </div>
+
+    <div class='section'>
+      <strong>Route Stats</strong>
+      <div id='statsContent' class='small-text'>
+      </div>
+    </div>
+  </div>
+
+  <script
+    src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+    integrity='sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo='
+    crossorigin=''
+  ></script>
+
+  <script>
+    const map = L.map('map').setView([51.5074, -0.1278], 11);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    let originMarker = null;
+    let destinationMarker = null;
+    let userAccuracyCircle = null;
+
+    let originLatLng = null;
+    let destinationLatLng = null;
+    let originAddress = 'Not set';
+    let destinationAddress = 'Not set';
+
+    let shortestLayer = null;
+    let easiestLayer = null;
+
+    const shortestStyle = {
+      color: '#1565c0',
+      weight: 6,
+      opacity: 0.9
+    };
+
+    const easiestStyle = {
+      color: '#2e7d32',
+      weight: 6,
+      opacity: 0.9,
+      dashArray: '10, 8'
+    };
+
+    const originInput = document.getElementById('originInput');
+    const destinationInput = document.getElementById('destinationInput');
+    const searchOriginBtn = document.getElementById('searchOriginBtn');
+    const searchDestinationBtn = document.getElementById('searchDestinationBtn');
+    const locateBtn = document.getElementById('locateBtn');
+    const routeBtn = document.getElementById('routeBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const steepnessSlider = document.getElementById('steepnessSlider');
+    const crimeSlider = document.getElementById('crimeSlider');
+    const noiseSlider = document.getElementById('noiseSlider');
+    const steepnessValue = document.getElementById('steepnessValue');
+
+    const originSelected = document.getElementById('originSelected');
+    const destinationSelected = document.getElementById('destinationSelected');
+    const searchStatus = document.getElementById('searchStatus');
+    const statsContent = document.getElementById('statsContent');
+
+    function formatMeters(meters) {
+      if (meters >= 1000) {
+        return (meters / 1000).toFixed(2) + ' km';
+      }
+      return Number(meters || 0).toFixed(0) + ' m';
+    }
+
+    function formatLatLng(latlng) {
+      return `${Number(latlng.lat).toFixed(5)}, ${Number(latlng.lng).toFixed(5)}`;
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function updatePreferenceUI() {
+      const value = Number(steepnessSlider.value);
+      steepnessValue.textContent = `${value}`;
+    }
+
+    function getPreferences() {
+      return {
+        steepness: Number(steepnessSlider.value),
+        crime: Number(crimeSlider.value || 0),
+        noise: Number(noiseSlider.value || 0)
+      };
+    }
+
+    function clearRouteLayers() {
+      if (shortestLayer) {
+        map.removeLayer(shortestLayer);
+        shortestLayer = null;
+      }
+
+      if (easiestLayer) {
+        map.removeLayer(easiestLayer);
+        easiestLayer = null;
+      }
+    }
+
+    function updateStatsFromApi(result) {
+      const shortestStats = result.shortest?.stats || {};
+      const easiestStats = result.easiest?.stats || {};
+      const preferences = result.preferences || {};
+      const steepness = Number(preferences.steepness ?? steepnessSlider.value ?? 2);
+
+      statsContent.innerHTML = `
+        <div style='margin-bottom:8px;'>
+          <strong>Active preference</strong><br>
+          Steepness level: ${steepness}<br>
+          Crime: placeholder<br>
+          Noise: placeholder
+        </div>
+
+        <div style='margin-bottom:8px;'>
+          <strong>Shortest Route</strong><br>
+          Length: ${formatMeters(shortestStats.length_m || 0)}<br>
+          Avg slope: ${Number(shortestStats.avg_slope_pct || 0).toFixed(2)}%
+        </div>
+
+        <div>
+          <strong>Personalised Route</strong><br>
+          Length: ${formatMeters(easiestStats.length_m || 0)}<br>
+          Avg slope: ${Number(easiestStats.avg_slope_pct || 0).toFixed(2)}%
+        </div>
+      `;
+    }
+
+    function setStatus(message, isError = false) {
+      searchStatus.textContent = message;
+      searchStatus.style.color = isError ? '#c62828' : '#444';
+    }
+
+    function updateLocationTexts() {
+      originSelected.textContent = originLatLng
+        ? `${originAddress} (${formatLatLng(originLatLng)})`
+        : 'Not set';
+      destinationSelected.textContent = destinationLatLng
+        ? `${destinationAddress} (${formatLatLng(destinationLatLng)})`
+        : 'Not set';
+    }
+
+    function setOrigin(latlng, addressLabel) {
+      originLatLng = { lat: Number(latlng.lat), lng: Number(latlng.lng) };
+      originAddress = addressLabel || formatLatLng(originLatLng);
+
+      if (originMarker) {
+        map.removeLayer(originMarker);
+      }
+
+      originMarker = L.marker([originLatLng.lat, originLatLng.lng], { title: 'Origin' })
+        .addTo(map)
+        .bindPopup(`<strong>Origin</strong><br>${escapeHtml(originAddress)}`);
+
+      updateLocationTexts();
+    }
+
+    function setDestination(latlng, addressLabel) {
+      destinationLatLng = { lat: Number(latlng.lat), lng: Number(latlng.lng) };
+      destinationAddress = addressLabel || formatLatLng(destinationLatLng);
+
+      if (destinationMarker) {
+        map.removeLayer(destinationMarker);
+      }
+
+      destinationMarker = L.marker([destinationLatLng.lat, destinationLatLng.lng], { title: 'Destination' })
+        .addTo(map)
+        .bindPopup(`<strong>Destination</strong><br>${escapeHtml(destinationAddress)}`);
+
+      updateLocationTexts();
+    }
+
+    async function geocodeAddress(query) {
+      const response = await fetch(`/geocode?q=${encodeURIComponent(query)}`);
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Geocoding failed');
+      }
+
+      if (!result.results || !result.results.length) {
+        throw new Error('No matching address found. Please try a more specific place name.');
+      }
+
+      return result.results[0];
+    }
+
+    async function reverseGeocode(lat, lng) {
+      const response = await fetch(`/reverse_geocode?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`);
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Reverse geocoding failed');
+      }
+
+      return result;
+    }
+
+    async function searchOrigin() {
+      const query = originInput.value.trim();
+
+      if (!query) {
+        setStatus('Please enter an origin address.', true);
+        return;
+      }
+
+      setStatus('Searching for the origin...');
+
+      try {
+        const result = await geocodeAddress(query);
+        setOrigin({ lat: result.lat, lng: result.lng }, result.display_name);
+        map.setView([result.lat, result.lng], 15);
+        originMarker.openPopup();
+
+        if (destinationLatLng) {
+          setStatus('Origin updated. Click "Find Route" to recalculate.');
+        } else {
+          setStatus('Origin set.');
+        }
+      } catch (error) {
+        console.error(error);
+        setStatus(`Origin search failed: ${error.message}`, true);
+      }
+    }
+
+    async function searchDestination() {
+      const query = destinationInput.value.trim();
+
+      if (!query) {
+        setStatus('Please enter a destination address.', true);
+        return;
+      }
+
+      setStatus('Searching for the destination...');
+
+      try {
+        const result = await geocodeAddress(query);
+        setDestination({ lat: result.lat, lng: result.lng }, result.display_name);
+        map.setView([result.lat, result.lng], 15);
+        destinationMarker.openPopup();
+
+        if (originLatLng) {
+          setStatus('Destination set. Click "Find Route" to calculate the route.');
+        } else {
+          setStatus('Destination set.');
+        }
+      } catch (error) {
+        console.error(error);
+        setStatus(`Destination search failed: ${error.message}`, true);
+      }
+    }
+
+    async function requestRoute() {
+      if (!originLatLng || !destinationLatLng) {
+        setStatus('Please set both origin and destination first.', true);
+        return;
+      }
+
+      statsContent.innerHTML = 'Calculating routes...';
+      setStatus('Requesting /route using the current preference settings...');
+
+      try {
+        const response = await fetch('/route', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            origin: {
+              lat: originLatLng.lat,
+              lng: originLatLng.lng
+            },
+            destination: {
+              lat: destinationLatLng.lat,
+              lng: destinationLatLng.lng
+            },
+            preferences: getPreferences()
+          })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Routing failed');
+        }
+
+        clearRouteLayers();
+
+        shortestLayer = L.geoJSON(result.shortest.geojson, {
+          style: shortestStyle
+        }).addTo(map);
+
+        easiestLayer = L.geoJSON(result.easiest.geojson, {
+          style: easiestStyle
+        }).addTo(map);
+
+        const group = L.featureGroup([shortestLayer, easiestLayer]);
+        const bounds = group.getBounds();
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, { padding: [30, 30] });
+        }
+
+        updateStatsFromApi(result);
+        setStatus('Route calculation complete.');
+      } catch (error) {
+        console.error(error);
+        statsContent.innerHTML = `
+          <span style='color:red;'>
+            Route request failed: ${error.message}
+          </span>
+        `;
+        setStatus(`Route calculation failed: ${error.message}`, true);
+      }
+    }
+
+    async function onMapClick(e) {
+      const { lat, lng } = e.latlng;
+      const clickedLatLng = { lat, lng };
+
+      setStatus('Point selected on the map. Resolving address name...');
+
+      let displayName = formatLatLng(clickedLatLng);
+      try {
+        const reverseResult = await reverseGeocode(lat, lng);
+        displayName = reverseResult.display_name || displayName;
+      } catch (error) {
+        console.warn('Reverse geocoding failed, fallback to coordinates.', error);
+      }
+
+      if (!originLatLng) {
+        setOrigin(clickedLatLng, displayName);
+        originInput.value = displayName;
+        originMarker.openPopup();
+        setStatus('Origin set from the map. Please set a destination next.');
+        return;
+      }
+
+      setDestination(clickedLatLng, displayName);
+      destinationInput.value = displayName;
+      destinationMarker.openPopup();
+      setStatus('Destination set from the map. Click "Find Route" to calculate the route.');
+    }
+
+    map.on('click', onMapClick);
+
+    function resetSelection() {
+      if (originMarker) {
+        map.removeLayer(originMarker);
+        originMarker = null;
+      }
+
+      if (destinationMarker) {
+        map.removeLayer(destinationMarker);
+        destinationMarker = null;
+      }
+
+      if (userAccuracyCircle) {
+        map.removeLayer(userAccuracyCircle);
+        userAccuracyCircle = null;
+      }
+
+      clearRouteLayers();
+
+      originLatLng = null;
+      destinationLatLng = null;
+      originAddress = 'Not set';
+      destinationAddress = 'Not set';
+
+      originInput.value = '';
+      destinationInput.value = '';
+
+      updateLocationTexts();
+      statsContent.textContent = 'Route statistics will appear after you select an origin and destination.';
+      setStatus('Reset complete. Enter addresses, use location, or click the map to select points.');
+    }
+
+    function locateUser() {
+      if (!navigator.geolocation) {
+        alert('Your browser does not support geolocation.');
+        return;
+      }
+
+      setStatus('Getting your current location...');
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          const accuracy = position.coords.accuracy;
+
+          let label = 'My current location';
+          try {
+            const reverseResult = await reverseGeocode(lat, lng);
+            label = reverseResult.display_name || label;
+          } catch (error) {
+            console.warn('Reverse geocode failed for current location.', error);
+          }
+
+          setOrigin({ lat, lng }, label);
+          originInput.value = label;
+
+          if (userAccuracyCircle) {
+            map.removeLayer(userAccuracyCircle);
+          }
+
+          userAccuracyCircle = L.circle([lat, lng], {
+            radius: accuracy,
+            color: '#1976d2',
+            fillColor: '#42a5f5',
+            fillOpacity: 0.15,
+            weight: 1
+          }).addTo(map);
+
+          map.setView([lat, lng], 15);
+          originMarker.openPopup();
+
+          if (destinationLatLng) {
+            setStatus('Current location updated. Click "Find Route" to recalculate.');
+          } else {
+            setStatus('Current location has been set as the origin. Please set a destination.');
+          }
+        },
+        (error) => {
+          console.error(error);
+          setStatus('Location failed. Please check browser location permissions.', true);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000
+        }
+      );
+    }
+
+    searchOriginBtn.addEventListener('click', searchOrigin);
+    searchDestinationBtn.addEventListener('click', searchDestination);
+    locateBtn.addEventListener('click', locateUser);
+    routeBtn.addEventListener('click', requestRoute);
+    resetBtn.addEventListener('click', resetSelection);
+    steepnessSlider.addEventListener('input', updatePreferenceUI);
+    steepnessSlider.addEventListener('change', async () => {
+      if (originLatLng && destinationLatLng) {
+        setStatus('Steepness preference updated. Recalculating route...');
+        await requestRoute();
+      }
+    });
+
+    originInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        searchOrigin();
+      }
+    });
+
+    destinationInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        searchDestination();
+      }
+    });
+
+    updateLocationTexts();
+    updatePreferenceUI();
+    setStatus('Enter addresses, use your location, or click the map to choose origin and destination.');
+  </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+Flask
+requests
+pyproj
+geopandas
+pandas
+numpy
+rasterio
+networkx
+shapely
+scipy
+pyrosm （Used for export_full_network_from_pbf.py , only in Python 3.10 version or older)
