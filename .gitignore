@@ -70,7 +70,7 @@ ComfortPath/backend/data/osm/road_mask_cache/
 
 # Large data files
 *.gpkg
-points_module/point_module_data
+composite_indicators_module/data
 
 /.quarto/
 **/*.quarto_ipynb
