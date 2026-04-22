@@ -22,19 +22,15 @@ from shapely.geometry import LineString, MultiLineString, Point
 from shapely.ops import unary_union, linemerge
 from scipy.spatial import cKDTree
 
-
 warnings.filterwarnings("ignore", category=UserWarning)
-
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 
 #functions
-
 def ensure_linestrings(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """
-    Keep only linear features and explode MultiLineString geometries into
-    individual LineString features.
+    Keep only linear features and explode MultiLineString geometries into individual LineString features
     """
     gdf = gdf.copy()
     gdf = gdf[gdf.geometry.notna()].copy()
@@ -46,7 +42,7 @@ def ensure_linestrings(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 
 def round_coord(x, y, ndigits=3):
     """
-    Standardize node keys to avoid floating point precision issues.
+    Standardise node keys to avoid floating point precision issues.
     In EPSG:27700, millimetre precision is unnecessary, so 3 decimals are enough.
     """
     return (round(float(x), ndigits), round(float(y), ndigits))
@@ -66,6 +62,7 @@ def replace_line_endpoints(line: LineString, start_xy, end_xy) -> LineString:
     if len(coords) < 2:
         return line
     new_coords = [start_xy] + coords[1:-1] + [end_xy]
+
     # Avoid duplicated vertices or degenerate lines after endpoint snapping
     cleaned = [new_coords[0]]
     for c in new_coords[1:]:
@@ -80,8 +77,7 @@ def replace_line_endpoints(line: LineString, start_xy, end_xy) -> LineString:
 
 def snap_nearby_endpoints(gdf: gpd.GeoDataFrame, tolerance=3.0) -> gpd.GeoDataFrame:
     """
-    Cluster endpoints within the given tolerance (in metres) and replace them
-    with the cluster centroid.
+    Cluster endpoints within the given tolerance (in metres) and replace them with the cluster centroid.
     Only endpoints are snapped, the full line geometry is not shifted.
     """
     gdf = gdf.copy().reset_index(drop=True)
@@ -144,7 +140,6 @@ def snap_nearby_endpoints(gdf: gpd.GeoDataFrame, tolerance=3.0) -> gpd.GeoDataFr
     return gdf
 
 # Split the network at intersections
-
 def extract_noded_segments(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """
     Apply unary_union to the whole line network so intersections are split automatically, then extract the resulting individual segments.
@@ -230,10 +225,18 @@ def map_attributes_to_segments(
     # Replace length_m with the actual split segment length for robustness
     out["length_m"] = out.geometry.length
 
-    # Default missing slope_pct values to 0
-    if "slope_pct" not in out.columns:
-        out["slope_pct"] = 0.0
-    out["slope_pct"] = pd.to_numeric(out["slope_pct"], errors="coerce").fillna(0.0)
+    # Default missing continuous score columns to 0
+    if "slope_score" not in out.columns:
+        if "slope_pct" in out.columns:
+            out["slope_score"] = out["slope_pct"]
+        else:
+            out["slope_score"] = 0.0
+    out["slope_score"] = pd.to_numeric(out["slope_score"], errors="coerce").fillna(0.0)
+
+    for score_col in ["crime_score", "air_score"]:
+        if score_col not in out.columns:
+            out[score_col] = 0.0
+        out[score_col] = pd.to_numeric(out[score_col], errors="coerce").fillna(0.0)
 
     return out
 
@@ -249,13 +252,13 @@ def build_graph_from_segments(
     Nodes are defined by the start and end coordinates of each segment.
 
     cost_shortest:
-        length * type penalty only
+        length only
     cost_easiest:
-        length * slope penalty * type penalty
+        length * pre-calculated slope-score penalty * type penalty
 
     Design logic:
-    - road is the default network, factor = 1.0
-    - footpath gets a slight penalty so it is not chosen by default when it is nearly equivalent to a road.
+    - shortest routing stays purely length-based
+    - personalised routing can still apply a slight footpath penalty
     - if a footpath offers a meaningful shortcut (for example through a park), it can still be selected
     """
     G = nx.Graph()
@@ -267,11 +270,12 @@ def build_graph_from_segments(
         v = round_coord(*coords[-1])
 
         length_m = float(row["length_m"])
-        slope_pct = float(row.get("slope_pct", 0.0))
+        slope_score = float(row.get("slope_score", 0.0))
+        crime_score = float(row.get("crime_score", 0.0))
+        air_score = float(row.get("air_score", 0.0))
         edge_type = row.get("edge_type", "road")
 
-        # Penalise uphill only, use slope_pct later if both directions should be penalised
-        slope_penalty = 1.0 + slope_factor * max(slope_pct, 0.0) / 100.0
+        slope_penalty = 1.0 + slope_factor * max(slope_score, 0.0) / 100.0
 
         # Prefer roads, with a slight penalty on footpaths
         type_factor = footpath_penalty if edge_type == "footpath" else 1.0
@@ -280,11 +284,17 @@ def build_graph_from_segments(
         edge_data.update({
             "geometry": geom,
             "length_m": length_m,
-            "slope_pct": slope_pct,
+            "slope_score": slope_score,
+            "crime_score": crime_score,
+            "air_score": air_score,
             "edge_type": edge_type,
             "display_type": edge_type,
             "type_factor": type_factor,
-            "cost_shortest": length_m * type_factor,
+            "slope_component": max(slope_score, 0.0) / 100.0,
+            "crime_component": max(crime_score, 0.0),
+            "air_component": max(air_score, 0.0),
+            "noise_component": 0.0,
+            "cost_shortest": length_m,
             "cost_easiest": length_m * slope_penalty * type_factor
         })
 
@@ -344,25 +354,30 @@ def snap_point_to_graph_node(x, y, nodes, tree):
     return nodes[idx], float(dist)
 
 
-def build_preference_weight_function(steepness_factor=4.0, crime_factor=0.0, noise_factor=0.0):
+def build_preference_weight_function(steepness_factor=4.0, crime_factor=0.0, air_factor=0.0, noise_factor=0.0):
     """
-    Build a dynamic edge-weight function for personalized routing.
-    Only steepness is active for now. Crime and noise are placeholder hooks so the API contract can remain stable when those datasets are added later.
+    Build a dynamic edge-weight function for personalised routing.
+    Scores are pre-attached to each road segment before routing.
+    This keeps the web app fast because the expensive spatial processing is done upstream.
+    Noise is currently only a UI / API placeholder, so its component defaults to 0.
     """
 
     # This function is passed directly into NetworkX so the route cost can change dynamically with the user's current preferences.
     def weight(u, v, data):
         length_m = float(data.get("length_m", 0.0))
-        slope_pct = float(data.get("slope_pct", 0.0))
         type_factor = float(data.get("type_factor", 1.0))
+        slope_component = float(data.get("slope_component", 0.0))
+        crime_component = float(data.get("crime_component", 0.0))
+        air_component = float(data.get("air_component", 0.0))
+        noise_component = float(data.get("noise_component", 0.0))
 
-        slope_penalty = 1.0 + float(steepness_factor) * max(slope_pct, 0.0) / 100.0
-
-        # Placeholder multipliers for future crime / noise integration.
-        crime_penalty = 1.0 + float(crime_factor) * float(data.get("crime_penalty", 0.0))
-        noise_penalty = 1.0 + float(noise_factor) * float(data.get("noise_penalty", 0.0))
-
-        return length_m * type_factor * slope_penalty * crime_penalty * noise_penalty
+        return length_m * type_factor * (
+            1.0
+            + float(steepness_factor) * slope_component
+            + float(crime_factor) * crime_component
+            + float(air_factor) * air_component
+            + float(noise_factor) * noise_component
+        )
 
     return weight
 
@@ -387,7 +402,9 @@ def solve_route(G: nx.Graph, source_node, target_node, weight_field):
             "u": u,
             "v": v,
             "length_m": data["length_m"],
-            "slope_pct": data["slope_pct"],
+            "slope_score": data.get("slope_score", 0.0),
+            "crime_score": data.get("crime_score", 0.0),
+            "air_score": data.get("air_score", 0.0),
             "edge_type": edge_type,
             "display_type": data.get("display_type", edge_type),
             "cost_shortest": data["cost_shortest"],
@@ -396,7 +413,7 @@ def solve_route(G: nx.Graph, source_node, target_node, weight_field):
         })
 
         total_length += data["length_m"]
-        weighted_slope_sum += data["slope_pct"] * data["length_m"]
+        weighted_slope_sum += data.get("slope_score", 0.0) * data["length_m"]
 
         if edge_type == "footpath":
             footpath_length += data["length_m"]
@@ -409,6 +426,7 @@ def solve_route(G: nx.Graph, source_node, target_node, weight_field):
 
     stats = {
         "total_length_m": total_length,
+        "average_slope_score": avg_slope,
         "average_slope_pct": avg_slope,
         "road_length_m": road_length,
         "footpath_length_m": footpath_length,
@@ -500,13 +518,21 @@ def prepare_network_and_routes(
 
     if "length_m" not in base.columns:
         base["length_m"] = base.geometry.length
-    if "slope_pct" not in base.columns:
-        base["slope_pct"] = 0.0
+    if "slope_score" not in base.columns:
+        if "slope_pct" in base.columns:
+            base["slope_score"] = base["slope_pct"]
+        else:
+            base["slope_score"] = 0.0
+    for score_col in ["crime_score", "air_score"]:
+        if score_col not in base.columns:
+            base[score_col] = 0.0
     if "edge_type" not in base.columns:
         base["edge_type"] = "road"
 
     base["length_m"] = pd.to_numeric(base["length_m"], errors="coerce")
-    base["slope_pct"] = pd.to_numeric(base["slope_pct"], errors="coerce").fillna(0.0)
+    base["slope_score"] = pd.to_numeric(base["slope_score"], errors="coerce").fillna(0.0)
+    base["crime_score"] = pd.to_numeric(base["crime_score"], errors="coerce").fillna(0.0)
+    base["air_score"] = pd.to_numeric(base["air_score"], errors="coerce").fillna(0.0)
     base = base[base["length_m"].notna()].copy()
 
     print("Step 2: snap nearby endpoints...")
@@ -560,9 +586,9 @@ def prepare_network_and_routes(
     print(f"End node snapped, distance = {end_dist:.2f} m")
 
     if start_dist > 100:
-        print("Warning: the start point is far from the main network; the test point may not be ideal.")
+        print("Warning: the start point is far from the main network.")
     if end_dist > 100:
-        print("Warning: the end point is far from the main network; the test point may not be ideal.")
+        print("Warning: the end point is far from the main network.")
 
     print("Step 8: shortest route...")
     shortest_nodes, shortest_route, shortest_stats = solve_route(

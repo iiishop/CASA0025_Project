@@ -28,7 +28,6 @@ from routing import (
 # Flask app
 app = Flask(__name__)
 
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 
@@ -68,9 +67,12 @@ def format_stats(stats: dict):
     """
     Format routing stats into a frontend-friendly structure.
     """
+    avg_slope_value = stats.get("average_slope_score", stats.get("average_slope_pct", 0.0))
+
     return {
         "length_m": round(stats["total_length_m"], 2),
-        "avg_slope_pct": round(stats["average_slope_pct"], 2),
+        "avg_slope_score": round(avg_slope_value, 2),
+        "avg_slope_pct": round(avg_slope_value, 2),
         "road_length_m": round(stats["road_length_m"], 2),
         "footpath_length_m": round(stats["footpath_length_m"], 2),
         "footpath_share": round(stats["footpath_share"], 4),
@@ -81,8 +83,7 @@ def format_stats(stats: dict):
 
 def nominatim_get(path: str, params: dict):
     """
-    Proxy Nominatim requests through Flask so the frontend does not have to
-    manage headers, CORS, or rate-limit related details directly.
+    Proxy Nominatim requests through Flask so the frontend does not have to manage headers, CORS, or rate-limit related details directly.
     """
     response = requests.get(
         f"{NOMINATIM_BASE}{path}",
@@ -112,6 +113,10 @@ def compute_routes(origin, destination, preferences=None):
     }
     steepness_factor = steepness_factor_map[steepness_level]
     crime_factor = float(preferences.get("crime", 0.0))
+    air_factor = float(preferences.get("air", 0.0))
+
+    # Noise remains a placeholder in the current web layer.
+    # The canonical routing schema is still centred on slope_score / crime_score / air_score.
     noise_factor = float(preferences.get("noise", 0.0))
 
     # Read WGS84 coordinates sent from the frontend
@@ -140,10 +145,12 @@ def compute_routes(origin, destination, preferences=None):
         G_main, start_node, end_node, weight_field="cost_shortest"
     )
 
-    # Personalised route uses a dynamic weight function.
+    # Personalised route uses a dynamic weight function built from precomputed road-segment scores, 
+    # which keeps the web app fast at runtime.
     preference_weight = build_preference_weight_function(
         steepness_factor=steepness_factor,
         crime_factor=crime_factor,
+        air_factor=air_factor,
         noise_factor=noise_factor,
     )
 
@@ -171,6 +178,7 @@ def compute_routes(origin, destination, preferences=None):
             "steepness": steepness_level,
             "steepness_factor": steepness_factor,
             "crime": crime_factor,
+            "air": air_factor,
             "noise": noise_factor,
         }
     }

@@ -220,16 +220,24 @@
           <span class='control-value'>Coming soon</span>
         </label>
         <input id='crimeSlider' type='range' min='0' max='10' step='1' value='0' disabled />
-        <div class='small-text'>Reserved for future safety data integration.</div>
+        <div class='small-text'>Reserved for future population of the canonical <code>crime_score</code> column.</div>
       </div>
 
+      <div class='control-card coming-soon'>
+        <label for='airSlider'>
+          <span>Air exposure level</span>
+          <span class='control-value'>Coming soon</span>
+        </label>
+        <input id='airSlider' type='range' min='0' max='10' step='1' value='0' disabled />
+        <div class='small-text'>Reserved for future population of the canonical <code>air_score</code> column.</div>
+      </div>
       <div class='control-card coming-soon'>
         <label for='noiseSlider'>
           <span>Noise level</span>
           <span class='control-value'>Coming soon</span>
         </label>
         <input id='noiseSlider' type='range' min='0' max='10' step='1' value='0' disabled />
-        <div class='small-text'>Reserved for future noise exposure data integration.</div>
+        <div class='small-text'>UI placeholder only for a future variable. Noise is not yet part of the canonical segment schema.</div>
       </div>
     </div>
 
@@ -293,7 +301,6 @@
 
     let shortestLayer = null;
     let easiestLayer = null;
-
     const shortestStyle = {
       color: '#1565c0',
       weight: 6,
@@ -316,6 +323,7 @@
     const resetBtn = document.getElementById('resetBtn');
     const steepnessSlider = document.getElementById('steepnessSlider');
     const crimeSlider = document.getElementById('crimeSlider');
+    const airSlider = document.getElementById('airSlider');
     const noiseSlider = document.getElementById('noiseSlider');
     const steepnessValue = document.getElementById('steepnessValue');
 
@@ -353,6 +361,7 @@
       return {
         steepness: Number(steepnessSlider.value),
         crime: Number(crimeSlider.value || 0),
+        air: Number(airSlider.value || 0),
         noise: Number(noiseSlider.value || 0)
       };
     }
@@ -379,8 +388,9 @@
         <div style='margin-bottom:8px;'>
           <strong>Active preference</strong><br>
           Steepness level: ${steepness}<br>
-          Crime: placeholder<br>
-          Noise: placeholder
+          Crime: canonical column reserved, current values are placeholders<br>
+          Air: canonical column reserved, current values are placeholders<br>
+          Noise: UI placeholder only
         </div>
 
         <div style='margin-bottom:8px;'>
