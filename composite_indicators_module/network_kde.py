@@ -5,7 +5,18 @@ from typing import Optional, Sequence
 import numpy as np
 import pandas as pd
 import geopandas as gpd
+"""
+This script computes line-based kernel density estimates (KDE) by projecting point events onto nearby line segments. It is designed for street-network style analysis where points represent observations or amenities, and lines represent street segments or other linear features.
 
+The main function, network_kde_on_lines, returns a copy of the input line layer with new columns describing:
+
+- KDE intensity per segment
+- raw nearby point counts
+- optional weighted counts
+- optional normalized ranks from 0 to 1
+
+The output keeps all original line segments. Segments that are too short for analysis are retained and filled with zero-valued outputs.
+"""
 
 def _safe_field_name(name: str, max_len: int = 40) -> str:
     name = str(name).strip().lower()
@@ -92,8 +103,15 @@ def network_kde_on_lines(
 
     base_name = _safe_field_name(value_name)
 
-    points = point_gdf.to_crs(target_crs).copy()
-    lines = line_gdf.to_crs(target_crs).copy()
+    if point_gdf.crs != line_gdf.crs:
+        raise ValueError(f"CRS mismatch: point_gdf={point_gdf.crs}, line_gdf={line_gdf.crs}")
+
+    if target_crs is None:
+        points = point_gdf.copy()
+        lines = line_gdf.copy()
+    else:
+        points = point_gdf.copy() if point_gdf.crs == target_crs else point_gdf.to_crs(target_crs).copy()
+        lines = line_gdf.copy() if line_gdf.crs == target_crs else line_gdf.to_crs(target_crs).copy()
 
     points = points[points.geometry.notna()].copy()
     lines = lines[lines.geometry.notna()].copy()
