@@ -90,11 +90,27 @@ if "length_m" not in gdf.columns:
 gdf["length_m"] = pd.to_numeric(gdf["length_m"], errors="coerce")
 gdf = gdf[gdf["length_m"].notna()].copy()
 
+for score_col in ["slope_score", "crime_score", "air_score"]:
+    ensure_col(gdf, score_col)
+    gdf[score_col] = pd.to_numeric(gdf[score_col], errors="coerce").fillna(0.0)
+
+for node_col in ["u", "v"]:
+    if node_col not in gdf.columns:
+        raise ValueError(f"Input network is missing required routing column: {node_col}")
+    gdf[node_col] = pd.to_numeric(gdf[node_col], errors="coerce")
+
+gdf = gdf[gdf["u"].notna() & gdf["v"].notna()].copy()
+gdf["u"] = gdf["u"].astype("int64")
+gdf["v"] = gdf["v"].astype("int64")
+
+ensure_col(gdf, "osm_id")
+ensure_col(gdf, "fclass")
+
 if "walk_candidate" in gdf.columns:
     gdf = gdf[gdf["walk_candidate"].fillna(False)].copy()
 
-# Define the main routing inclusion rules.
-# The aim is to keep a realistic walking network without making it too noisy.
+# Define the main routing inclusion rules
+# The aim is to keep a realistic walking network without making it too noisy
 fclass = gdf["fclass"]
 length_m = gdf["length_m"]
 foot_yes = gdf["foot"].isin(YES_VALUES)
@@ -137,13 +153,32 @@ routing_gdf = gdf[gdf["include_in_routing"]].copy()
 routing_gdf = routing_gdf[routing_gdf.geometry.length > 0].copy()
 routing_gdf["length_m"] = routing_gdf.geometry.length
 
-# Export the final network that will actually be used to build the graph.
+# Export the final network that will actually be used to build the graph
 print(f"Full network edges: {len(gdf):,}")
 print(f"Routing input edges: {len(routing_gdf):,}")
 print("Included fclass counts:")
 print(routing_gdf["fclass"].value_counts(dropna=False).head(30))
 print("Routing reason counts:")
-print(routing_gdf["routing_reason"].value_counts(dropna=False))
+print(gdf.loc[gdf["include_in_routing"], "routing_reason"].value_counts(dropna=False))
+print("Canonical score columns:", ["slope_score", "crime_score", "air_score"])
+print(routing_gdf[["slope_score", "crime_score", "air_score"]].describe())
+
+# Canonical road-segment score schema first, followed by routing-specific fields
+final_cols = [
+    "osm_id",
+    "geometry",
+    "length_m",
+    "slope_score",
+    "crime_score",
+    "air_score",
+    "u",
+    "v",
+    "fclass",
+]
+final_cols = [col for col in final_cols if col in routing_gdf.columns]
+routing_gdf = routing_gdf[final_cols].copy()
+
+print("Final routing export columns:", final_cols)
 
 if OUTPUT_PATH.exists():
     OUTPUT_PATH.unlink()

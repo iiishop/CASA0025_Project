@@ -28,7 +28,6 @@ GRAPH_CACHE_PATH = DATA_DIR / "main_graph.pkl"
 
 FOOTPATH_TYPES = {"footway", "path", "pedestrian", "steps"}
 FOOTPATH_PENALTY = 1.08
-SLOPE_FACTOR = 4.0
 
 
 def classify_edge_type(fclass: str) -> str:
@@ -47,7 +46,7 @@ if gdf.crs.to_epsg() != 27700:
     print("Reprojecting to EPSG:27700...")
     gdf = gdf.to_crs(27700)
 
-required_cols = ["u", "v", "geometry", "length_m"]
+required_cols = ["u", "v", "geometry", "length_m", "slope_score", "crime_score", "air_score"]
 missing = [c for c in required_cols if c not in gdf.columns]
 if missing:
     raise ValueError(f"Missing required columns: {missing}")
@@ -55,20 +54,26 @@ if missing:
 gdf = gdf[gdf.geometry.notna()].copy()
 gdf = gdf[~gdf.geometry.is_empty].copy()
 
+gdf["u"] = pd.to_numeric(gdf["u"], errors="coerce")
+gdf["v"] = pd.to_numeric(gdf["v"], errors="coerce")
 gdf["length_m"] = pd.to_numeric(gdf["length_m"], errors="coerce")
-gdf = gdf[gdf["length_m"].notna()].copy()
+gdf = gdf[gdf["u"].notna() & gdf["v"].notna() & gdf["length_m"].notna()].copy()
+gdf["u"] = gdf["u"].astype("int64")
+gdf["v"] = gdf["v"].astype("int64")
 
-if "slope_pct" not in gdf.columns:
-    gdf["slope_pct"] = 0.0
-gdf["slope_pct"] = pd.to_numeric(gdf["slope_pct"], errors="coerce").fillna(0.0)
+for score_col in ["slope_score", "crime_score", "air_score"]:
+    gdf[score_col] = pd.to_numeric(gdf[score_col], errors="coerce").fillna(0.0)
 
 if "fclass" not in gdf.columns:
     gdf["fclass"] = pd.NA
 
 gdf["edge_type"] = gdf["fclass"].apply(classify_edge_type)
 
-# Build a graph using the existing OSM u/v node ids. Each row becomes one edge with length, slope, and routing cost attributes.
+# Build a graph using the existing OSM u/v node ids
+# Each row becomes one edge with length and pre-attached continuous score columns
 print(f"Input edges: {len(gdf):,}")
+print("Canonical score columns:", ["slope_score", "crime_score", "air_score"])
+print(gdf[["slope_score", "crime_score", "air_score"]].describe())
 
 G = nx.Graph()
 
@@ -76,22 +81,29 @@ for _, row in gdf.iterrows():
     u = int(row["u"])
     v = int(row["v"])
     length_m = float(row["length_m"])
-    slope_pct = float(row["slope_pct"])
+    slope_score = float(row["slope_score"])
+    crime_score = float(row["crime_score"])
+    air_score = float(row["air_score"])
     edge_type = row["edge_type"]
 
-    slope_penalty = 1.0 + SLOPE_FACTOR * max(slope_pct, 0.0) / 100.0
     type_factor = FOOTPATH_PENALTY if edge_type == "footpath" else 1.0
 
     edge_data = row.drop(labels="geometry").to_dict()
     edge_data.update({
         "geometry": row.geometry,
         "length_m": length_m,
-        "slope_pct": slope_pct,
+        "slope_score": slope_score,
+        "crime_score": crime_score,
+        "air_score": air_score,
         "edge_type": edge_type,
         "display_type": edge_type,
         "type_factor": type_factor,
-        "cost_shortest": length_m * type_factor,
-        "cost_easiest": length_m * slope_penalty * type_factor
+        "slope_component": max(slope_score, 0.0) / 100.0,
+        "crime_component": max(crime_score, 0.0),
+        "air_component": max(air_score, 0.0),
+        "noise_component": 0.0,
+        "cost_shortest": length_m,
+        "cost_easiest": length_m * type_factor * (1.0 + max(slope_score, 0.0) / 100.0)
     })
 
     if G.has_edge(u, v):
@@ -107,7 +119,7 @@ components = sorted(nx.connected_components(G), key=len, reverse=True)
 if not components:
     raise ValueError("Graph is empty.")
 
-# Keep only the largest connected component so routing stays stable.
+# Keep only the largest connected component so routing stays stable
 largest_cc = components[0]
 G_main = G.subgraph(largest_cc).copy()
 

@@ -48,6 +48,7 @@ roads_layer = "roads_data_full"
 dem_path = DATA_DIR / "london_dem.tif"
 output_path = DATA_DIR / "network_full_with_slope.gpkg"
 output_layer = "network_full_with_slope"
+geojson_output_path = DATA_DIR / "network_full_with_slope.geojson"
 
 # Load roads
 roads = gpd.read_file(roads_path, layer=roads_layer)
@@ -69,7 +70,7 @@ roads_27700["length_m"] = roads_27700.geometry.length
 print("Roads ready:", roads_27700.shape)
 
 # Create start and end points
-# Slope is estimated from the elevation difference between the start and end of each road segment.
+# Slope is estimated from the elevation difference between the start and end point of each road segment.
 roads_27700["start_pt"] = roads_27700.geometry.apply(lambda geom: geom.interpolate(0))
 roads_27700["end_pt"] = roads_27700.geometry.apply(lambda geom: geom.interpolate(geom.length))
 
@@ -107,8 +108,8 @@ roads_27700["end_elev"] = end_elev
 roads_27700["elev_diff"] = roads_27700["end_elev"] - roads_27700["start_elev"]
 
 
-# Calculate slope and classify
-# Preserve all edges for UV/topology integrity, only assign slope values to sufficiently long edges with valid elevation.
+# Calculate a continuous road-segment slope score
+# Preserve all edges for UV & topology integrity, only assign slope values to long sufficiently edges with a valid elevation
 elevation_valid = (
     roads_27700["start_elev"].notna() &
     roads_27700["end_elev"].notna()
@@ -119,38 +120,53 @@ valid_mask = (
     elevation_valid
 )
 
-roads_27700["slope_pct"] = np.nan
+roads_27700["slope_score"] = np.nan
 
-roads_27700.loc[valid_mask, "slope_pct"] = (
+roads_27700.loc[valid_mask, "slope_score"] = (
     roads_27700.loc[valid_mask, "elev_diff"].abs() /
     roads_27700.loc[valid_mask, "length_m"] * 100
 )
 
 # Cap to remove extreme noise
-roads_27700.loc[roads_27700["slope_pct"] > 40, "slope_pct"] = np.nan
+roads_27700.loc[roads_27700["slope_score"] > 40, "slope_score"] = np.nan
 
-# Classify slope
-# These classes are mainly for interpretation and quick inspection.
-def classify_slope(x):
-    if pd.isna(x):
-        return "unknown"
-    elif x < 3:
-        return "easy"
-    elif x < 5:
-        return "moderate"
-    else:
-        return "steep"
-
-
-roads_27700["slope_class"] = roads_27700["slope_pct"].apply(classify_slope)
+# Placeholder continuous score columns for future variables
+roads_27700["crime_score"] = 0.0
+roads_27700["air_score"] = 0.0
 
 # Drop helper point columns
-roads_27700 = roads_27700.drop(columns=["start_pt", "end_pt"])
+roads_27700 = roads_27700.drop(columns=["start_pt", "end_pt", "start_elev", "end_elev", "elev_diff"])
+
+# Keep the score columns attached to each road segment, while preserving the topology needed by the later routing steps
+keep_cols = [
+    "osm_id",
+    "u",
+    "v",
+    "fclass",
+    "name",
+    "foot",
+    "service",
+    "sidewalk",
+    "crossing",
+    "segregated",
+    "length_m",
+    "slope_score",
+    "crime_score",
+    "air_score",
+    "walk_candidate",
+    "topology_level",
+    "geometry",
+]
+keep_cols = [col for col in keep_cols if col in roads_27700.columns]
+roads_27700 = roads_27700[keep_cols].copy()
 
 # Print summary
-print(roads_27700[["length_m", "start_elev", "end_elev", "elev_diff", "slope_pct", "slope_class"]].head())
-print(roads_27700["slope_pct"].describe())
-print(roads_27700["slope_class"].value_counts(dropna=False))
+valid_slope_count = int(roads_27700["slope_score"].notna().sum())
+
+print("Canonical score columns:", ["slope_score", "crime_score", "air_score"])
+print(f"Segments with valid slope_score: {valid_slope_count:,} / {len(roads_27700):,}")
+print(roads_27700[["length_m", "slope_score", "crime_score", "air_score"]].head())
+print(roads_27700[["slope_score", "crime_score", "air_score"]].describe())
 
 # Export as GPKG
 output_file = Path(output_path)
@@ -161,18 +177,20 @@ roads_27700.to_file(output_path, layer=output_layer, driver="GPKG")
 print(f"Saved to: {output_path} (layer={output_layer})")
 
 
-# Lightweight GeoJSON export for sharing.
+# Lightweight GeoJSON export for sharing
 roads_full = roads_27700[[
     "osm_id",
-    "fclass",
-    "name",
+    "length_m",
+    "slope_score",
+    "crime_score",
+    "air_score",
     "geometry"
 ]].copy()
 
 print("Fuller roads shape:", roads_full.shape)
-print(roads_full["fclass"].value_counts())
 
 roads_full.to_file(
-    DATA_DIR / "roads_data_full_version.geojson",
+    geojson_output_path,
     driver="GeoJSON"
 )
+print(f"Saved lightweight GeoJSON to: {geojson_output_path}")
