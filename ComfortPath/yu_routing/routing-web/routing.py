@@ -10,7 +10,6 @@ This file contains:
 """
 
 import warnings
-from collections import defaultdict
 from pathlib import Path
 
 import geopandas as gpd
@@ -18,8 +17,8 @@ import pandas as pd
 import networkx as nx
 import numpy as np
 
-from shapely.geometry import LineString, MultiLineString, Point
-from shapely.ops import unary_union, linemerge
+from shapely.geometry import LineString, Point
+from shapely.ops import unary_union
 from scipy.spatial import cKDTree
 
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -73,8 +72,6 @@ def replace_line_endpoints(line: LineString, start_xy, end_xy) -> LineString:
     return LineString(cleaned)
 
 
-#merge nearby endpoints to one representative point
-
 def snap_nearby_endpoints(gdf: gpd.GeoDataFrame, tolerance=3.0) -> gpd.GeoDataFrame:
     """
     Cluster endpoints within the given tolerance (in metres) and replace them with the cluster centroid.
@@ -94,7 +91,6 @@ def snap_nearby_endpoints(gdf: gpd.GeoDataFrame, tolerance=3.0) -> gpd.GeoDataFr
     arr = np.array(endpoints)
     tree = cKDTree(arr)
 
-    # Use BFS & union-like grouping to find connected components
     visited = np.zeros(len(arr), dtype=bool)
     groups = []
 
@@ -116,7 +112,6 @@ def snap_nearby_endpoints(gdf: gpd.GeoDataFrame, tolerance=3.0) -> gpd.GeoDataFr
 
         groups.append(group)
 
-    # Use the centroid of each group as the snapped coordinate
     snapped_xy = {}
     for group in groups:
         xs = arr[group, 0]
@@ -126,7 +121,6 @@ def snap_nearby_endpoints(gdf: gpd.GeoDataFrame, tolerance=3.0) -> gpd.GeoDataFr
         for idx in group:
             snapped_xy[idx] = (cx, cy)
 
-    # Replace endpoints for every line
     new_geoms = []
     for row_id, geom in enumerate(gdf.geometry):
         start_idx = 2 * row_id
@@ -227,10 +221,7 @@ def map_attributes_to_segments(
 
     # Default missing continuous score columns to 0
     if "slope_score" not in out.columns:
-        if "slope_pct" in out.columns:
-            out["slope_score"] = out["slope_pct"]
-        else:
-            out["slope_score"] = 0.0
+        out["slope_score"] = 0.0
     out["slope_score"] = pd.to_numeric(out["slope_score"], errors="coerce").fillna(0.0)
 
     for score_col in ["crime_score", "air_score"]:
@@ -277,7 +268,6 @@ def build_graph_from_segments(
 
         slope_penalty = 1.0 + slope_factor * max(slope_score, 0.0) / 100.0
 
-        # Prefer roads, with a slight penalty on footpaths
         type_factor = footpath_penalty if edge_type == "footpath" else 1.0
 
         edge_data = row.drop(labels="geometry").to_dict()
@@ -328,11 +318,9 @@ def build_node_kdtree(G: nx.Graph):
         if len(coords) < 2:
             continue
 
-        # Use the first coordinate of the edge for node u
         if u not in node_coords:
             node_coords[u] = coords[0]
 
-        # Use the last coordinate of the edge for node v
         if v not in node_coords:
             node_coords[v] = coords[-1]
 
@@ -354,29 +342,48 @@ def snap_point_to_graph_node(x, y, nodes, tree):
     return nodes[idx], float(dist)
 
 
-def build_preference_weight_function(steepness_factor=4.0, crime_factor=0.0, air_factor=0.0, noise_factor=0.0):
+def build_preference_weight_function(
+    length_factor=1.0,
+    steepness_factor=1.0,
+    crime_factor=0.0,
+    air_factor=0.0,
+    noise_factor=0.0,
+    shade_factor=0.0,
+    wind_factor=0.0,
+    street_activity_factor=0.0,
+    traffic_factor=0.0,
+):
     """
-    Build a dynamic edge-weight function for personalised routing.
-    Scores are pre-attached to each road segment before routing.
-    This keeps the web app fast because the expensive spatial processing is done upstream.
-    Noise is currently only a UI / API placeholder, so its component defaults to 0.
+    Build an additive multi-criteria edge-weight function for personalised routing.
+
+    Design logic:
+    edge_cost = α·length_norm + β·slope_norm + γ·crime_norm + δ·air_norm + ...
+
+    All variables should already be attached to road segments before runtime.
+    This keeps the web app fast because routing only combines ready-made edge attributes.
     """
 
-    # This function is passed directly into NetworkX so the route cost can change dynamically with the user's current preferences.
     def weight(u, v, data):
-        length_m = float(data.get("length_m", 0.0))
-        type_factor = float(data.get("type_factor", 1.0))
-        slope_component = float(data.get("slope_component", 0.0))
-        crime_component = float(data.get("crime_component", 0.0))
-        air_component = float(data.get("air_component", 0.0))
-        noise_component = float(data.get("noise_component", 0.0))
+        length_norm = float(data.get("length_norm", data.get("length_m", 0.0)))
+        slope_norm = float(data.get("slope_norm", data.get("slope_component", 0.0)))
+        crime_norm = float(data.get("crime_norm", data.get("crime_component", 0.0)))
+        air_norm = float(data.get("air_norm", data.get("air_component", 0.0)))
+        noise_norm = float(data.get("noise_norm", data.get("noise_component", 0.0)))
+        shade_norm = float(data.get("shade_norm", data.get("shade_component", 0.0)))
+        wind_norm = float(data.get("wind_norm", data.get("wind_component", 0.0)))
+        street_activity_norm = float(data.get("street_activity_norm", data.get("street_activity_component", 0.0)))
+        traffic_norm = float(data.get("traffic_norm", data.get("traffic_component", 0.0)))
 
-        return length_m * type_factor * (
-            1.0
-            + float(steepness_factor) * slope_component
-            + float(crime_factor) * crime_component
-            + float(air_factor) * air_component
-            + float(noise_factor) * noise_component
+        return (
+            float(length_factor) * length_norm
+            + float(steepness_factor) * slope_norm
+            + float(crime_factor) * crime_norm
+            + float(air_factor) * air_norm
+            + float(noise_factor) * noise_norm
+            + float(shade_factor) * shade_norm
+            + float(wind_factor) * wind_norm
+            + float(street_activity_factor) * street_activity_norm
+            + float(traffic_factor) * traffic_norm
         )
 
     return weight
@@ -427,7 +434,6 @@ def solve_route(G: nx.Graph, source_node, target_node, weight_field):
     stats = {
         "total_length_m": total_length,
         "average_slope_score": avg_slope,
-        "average_slope_pct": avg_slope,
         "road_length_m": road_length,
         "footpath_length_m": footpath_length,
         "footpath_share": footpath_length / total_length if total_length > 0 else 0.0,
@@ -488,7 +494,7 @@ def prepare_network_and_routes(
     sample_end_xy,
     snap_tolerance=3.0,
     footpath_penalty=1.08,
-    slope_factor=4,
+    slope_factor=6,
     out_shortest="route_shortest.geojson",
     out_easiest="route_easiest.geojson",
     out_network="network_processed.geojson"
@@ -519,10 +525,7 @@ def prepare_network_and_routes(
     if "length_m" not in base.columns:
         base["length_m"] = base.geometry.length
     if "slope_score" not in base.columns:
-        if "slope_pct" in base.columns:
-            base["slope_score"] = base["slope_pct"]
-        else:
-            base["slope_score"] = 0.0
+        base["slope_score"] = 0.0
     for score_col in ["crime_score", "air_score"]:
         if score_col not in base.columns:
             base[score_col] = 0.0
@@ -665,7 +668,7 @@ if __name__ == "__main__":
         sample_end_xy=sample_end_xy,
         snap_tolerance=3.0,
         footpath_penalty=1.08,
-        slope_factor=4.0,
+        slope_factor=6.0,
         out_shortest=str(DATA_DIR / "route_shortest.geojson"),
         out_easiest=str(DATA_DIR / "route_easiest.geojson"),
         out_network=str(DATA_DIR / "network_processed.geojson")

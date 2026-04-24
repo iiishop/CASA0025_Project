@@ -169,6 +169,121 @@
       opacity: 0.7;
     }
 
+    .tab-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      background: #eeeeee;
+      color: #333;
+      font-weight: bold;
+    }
+
+    .tab-btn.active {
+      background: #1565c0;
+      color: white;
+    }
+
+    .panel-hidden {
+      display: none;
+    }
+
+    .overlay-section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .overlay-controls {
+      display: grid;
+      gap: 8px;
+    }
+
+    .overlay-variable-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .overlay-legend {
+      margin-top: 8px;
+    }
+
+    .overlay-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .overlay-chip {
+      display: inline-block;
+      width: 18px;
+      height: 4px;
+      border-radius: 2px;
+    }
+
+    .overlay-chip-gradient {
+      background: linear-gradient(90deg, #2e7d32 0%, #f9a825 50%, #c62828 100%);
+    }
+
+    .overlay-gradient-wrap {
+      margin-top: 8px;
+      width: 100%;
+    }
+
+    .overlay-gradient-bar {
+      width: 100%;
+      height: 16px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #2e7d32 0%, #f1d04b 52%, #bf3030 100%);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .overlay-gradient-label {
+      margin-top: 4px;
+      font-size: 12px;
+      color: #555;
+      text-align: center;
+    }
+
+    .basemap-switcher {
+      position: absolute;
+      bottom: 30px;
+      right: 10px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .basemap-btn {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+      text-align: left;
+    }
+
+    .basemap-btn:hover {
+      background: #f0f0f0;
+    }
+
+    .basemap-btn.active {
+      background: #1565c0;
+      color: white;
+      border-color: #1565c0;
+    }
+
     @media (max-width: 768px) {
       .info-panel {
         left: 10px;
@@ -189,92 +304,169 @@
   <div class='info-panel'>
     <h3>Comfort Path Navigator</h3>
 
-    <div class='section'>
-      <div><span class='legend-line shortest-line'></span>Shortest Route</div>
-      <div><span class='legend-line easiest-line'></span>Personalised Route</div>
+    <div class='tab-row'>
+      <button id='navigatorTabBtn' class='tab-btn active' type='button'>Navigation</button>
+      <button id='overlayTabBtn' class='tab-btn' type='button'>Network Overlay</button>
     </div>
 
-    <div class='section small-text'>
-      <strong>How to use</strong><br>
-      1. Enter an origin / destination address and click "Search"<br>
-      2. Or click "Use My Location" to set the origin automatically<br>
-      3. You can also click the map to select points manually<br>
-      4. Adjust the steepness level to demonstrate personalised routing<br>
-      5. Once both points are set, click "Find Route"
-    </div>
-
-    <div class='section'>
-      <strong>User Preferences</strong>
-
-      <div class='control-card'>
-        <label for='steepnessSlider'>
-          <span>Steepness level</span>
-          <span id='steepnessValue' class='control-value'></span>
-        </label>
-        <input id='steepnessSlider' type='range' min='1' max='3' step='1' value='2' />
+    <div id='navigatorPanel'>
+      <div class='section'>
+        <div><span class='legend-line shortest-line'></span>Shortest Route</div>
+        <div><span class='legend-line easiest-line'></span>Personalised Route</div>
       </div>
 
-      <div class='control-card coming-soon'>
-        <label for='crimeSlider'>
-          <span>Crime level</span>
-          <span class='control-value'>Coming soon</span>
-        </label>
-        <input id='crimeSlider' type='range' min='0' max='10' step='1' value='0' disabled />
-        <div class='small-text'>Reserved for future population of the canonical <code>crime_score</code> column.</div>
+      <div class='section small-text'>
+        <strong>How to use</strong><br>
+        1. Enter an origin / destination address and click "Search"<br>
+        2. Or click "Use My Location" to set the origin automatically<br>
+        3. Adjust the steepness level to demonstrate personalised routing<br>
+        4. Once both points are set, click "Find Route"
       </div>
 
-      <div class='control-card coming-soon'>
-        <label for='airSlider'>
-          <span>Air exposure level</span>
-          <span class='control-value'>Coming soon</span>
-        </label>
-        <input id='airSlider' type='range' min='0' max='10' step='1' value='0' disabled />
-        <div class='small-text'>Reserved for future population of the canonical <code>air_score</code> column.</div>
-      </div>
-      <div class='control-card coming-soon'>
-        <label for='noiseSlider'>
-          <span>Noise level</span>
-          <span class='control-value'>Coming soon</span>
-        </label>
-        <input id='noiseSlider' type='range' min='0' max='10' step='1' value='0' disabled />
-        <div class='small-text'>UI placeholder only for a future variable. Noise is not yet part of the canonical segment schema.</div>
-      </div>
-    </div>
+      <div class='section'>
+        <strong>User Preferences</strong>
 
-    <div class='section'>
-      <div class='input-group'>
-        <label for='originInput'>Origin</label>
-        <div class='input-row'>
-          <input id='originInput' type='text' placeholder="Example: King's Cross Station" />
-          <button id='searchOriginBtn' type='button'>Search</button>
+        <div class='control-card'>
+          <label for='steepnessSlider'>
+            <span>Steepness level</span>
+            <span id='steepnessValue' class='control-value'></span>
+          </label>
+          <input id='steepnessSlider' type='range' min='1' max='3' step='1' value='2' />
         </div>
+
+        <div class='control-card'>
+          <label for='crimeSlider'>
+            <span>Avoid unsafe areas</span>
+            <span id='crimeValue' class='control-value'></span>
+          </label>
+          <input id='crimeSlider' type='range' min='1' max='3' step='1' value='1' />
+        </div>
+
+        <div class='control-card'>
+          <label for='shadeSlider'>
+            <span>Prefer shaded routes</span>
+            <span id='shadeValue' class='control-value'></span>
+          </label>
+          <input id='shadeSlider' type='range' min='1' max='3' step='1' value='1' />
+        </div>
+
+        <div class='control-card'>
+          <label for='streetActivitySlider'>
+            <span>Prefer interesting streets</span>
+            <span id='streetActivityValue' class='control-value'></span>
+          </label>
+          <input id='streetActivitySlider' type='range' min='1' max='3' step='1' value='1' />
+        </div>
+      </div>
+
+      <div class='section'>
+        <div class='input-group'>
+          <label for='originInput'>Origin</label>
+          <div class='input-row'>
+            <input id='originInput' type='text' placeholder="Example: King's Cross Station" />
+            <button id='searchOriginBtn' type='button'>Search</button>
+          </div>
+          <div class='btn-row'>
+            <button id='locateBtn' type='button'>Use My Location</button>
+          </div>
+          <div id='originSelected' class='selected-place'>Not set</div>
+        </div>
+
+        <div class='input-group'>
+          <label for='destinationInput'>Destination</label>
+          <div class='input-row'>
+            <input id='destinationInput' type='text' placeholder='Example: Waterloo Station' />
+            <button id='searchDestinationBtn' type='button'>Search</button>
+          </div>
+          <div id='destinationSelected' class='selected-place'>Not set</div>
+        </div>
+
         <div class='btn-row'>
-          <button id='locateBtn' type='button'>Use My Location</button>
+          <button id='routeBtn' class='primary-btn' type='button'>Find Route</button>
+          <button id='resetBtn' type='button'>Reset</button>
         </div>
-        <div id='originSelected' class='selected-place'>Not set</div>
       </div>
 
-      <div class='input-group'>
-        <label for='destinationInput'>Destination</label>
-        <div class='input-row'>
-          <input id='destinationInput' type='text' placeholder='Example: Waterloo Station' />
-          <button id='searchDestinationBtn' type='button'>Search</button>
-        </div>
-        <div id='destinationSelected' class='selected-place'>Not set</div>
+      <div class='section'>
+        <strong>Route Stats</strong>
+        <div id='statsContent' class='small-text'></div>
       </div>
-
-      <div class='btn-row'>
-        <button id='routeBtn' class='primary-btn' type='button'>Find Route</button>
-        <button id='resetBtn' type='button'>Reset</button>
-      </div>
-      <div id='searchStatus' class='status-text'>Please set an origin and destination first.</div>
     </div>
 
-    <div class='section'>
-      <strong>Route Stats</strong>
-      <div id='statsContent' class='small-text'>
+    <div id='overlayPanel' class='panel-hidden'>
+      <div class='section'>
+        <div class='overlay-gradient-wrap'>
+          <div class='overlay-gradient-bar'></div>
+          <div class='overlay-gradient-label'>Low → High</div>
+        </div>
+      </div>
+
+      <div class='section'>
+        <div class='overlay-section-title'>
+          <strong>Network Overlay</strong>
+          <span class='small-text'>static file + frontend scoring</span>
+        </div>
+
+        <div class='control-card'>
+          <div class='overlay-controls'>
+            <div class='overlay-variable-row'>
+              <label><input id='overlaySlopeCheck' type='checkbox' checked /> Slope</label>
+              <span id='overlaySlopeState' class='control-value'>yes</span>
+            </div>
+
+            <div class='overlay-variable-row'>
+              <label><input id='overlayCrimeCheck' type='checkbox' disabled /> Crime</label>
+              <span id='overlayCrimeState' class='control-value'>future</span>
+            </div>
+
+            <div class='overlay-variable-row'>
+              <label><input id='overlayAirCheck' type='checkbox' disabled /> Air</label>
+              <span id='overlayAirState' class='control-value'>future</span>
+            </div>
+
+            <div class='overlay-variable-row coming-soon'>
+              <label><input id='overlayShadeCheck' type='checkbox' disabled /> Shade</label>
+              <span id='overlayShadeState' class='control-value'>future</span>
+            </div>
+
+            <div class='overlay-variable-row coming-soon'>
+              <label><input id='overlayWindCheck' type='checkbox' disabled /> Wind</label>
+              <span id='overlayWindState' class='control-value'>future</span>
+            </div>
+
+            <div class='overlay-variable-row coming-soon'>
+              <label><input id='overlayNoiseCheck' type='checkbox' disabled /> Noise</label>
+              <span id='overlayNoiseState' class='control-value'>future</span>
+            </div>
+
+            <div class='overlay-variable-row coming-soon'>
+              <label><input id='overlayStreetActivityCheck' type='checkbox' disabled /> Street activity</label>
+              <span id='overlayStreetActivityState' class='control-value'>future</span>
+            </div>
+
+            <div class='overlay-variable-row coming-soon'>
+              <label><input id='overlayTrafficCheck' type='checkbox' disabled /> Traffic</label>
+              <span id='overlayTrafficState' class='control-value'>future</span>
+            </div>
+          </div>
+
+          <div class='btn-row'>
+            <button id='showOverlayBtn' type='button'>Show Overlay</button>
+            <button id='updateOverlayBtn' type='button'>Update Overlay</button>
+            <button id='hideOverlayBtn' type='button'>Hide Overlay</button>
+          </div>
+
+          <div class='small-text'>Overlay uses equal weighting across the selected variables and combines normalized score columns in the browser.</div>
+        </div>
       </div>
     </div>
+
+    <div id='searchStatus' class='status-text'>Please set an origin and destination first.</div>
+  </div>
+
+  <div class='basemap-switcher'>
+    <button class='basemap-btn active' data-basemap='voyager' type='button'>Voyager</button>
+    <button class='basemap-btn' data-basemap='standard' type='button'>Standard</button>
   </div>
 
   <script
@@ -284,10 +476,26 @@
   ></script>
 
   <script>
-    const map = L.map('map').setView([51.5074, -0.1278], 11);
+    const MAX_ALLOWED_ZOOM = 19;
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
+    const map = L.map('map', {
+      preferCanvas: true,
+      minZoom: 12,
+      maxZoom: MAX_ALLOWED_ZOOM,
+      maxBoundsViscosity: 1.0
+    }).setView([51.5074, -0.1278], 13);
+
+    const BASEMAP_URLS = {
+      voyager:  'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+      standard: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+    };
+    const CARTO_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+    const OSM_ATTR = '&copy; OpenStreetMap contributors';
+
+    let currentBasemapLayer = L.tileLayer(BASEMAP_URLS.voyager, {
+      attribution: CARTO_ATTR,
+      maxZoom: MAX_ALLOWED_ZOOM,
+      detectRetina: false
     }).addTo(map);
 
     let originMarker = null;
@@ -301,6 +509,13 @@
 
     let shortestLayer = null;
     let easiestLayer = null;
+    let overlayManifest = null;
+    let overlayTileCache = {};
+    let overlayTileLayers = {};
+    let overlayGroup = L.featureGroup();
+    let overlayVisible = false;
+    let lastVisibleTileKey = '';
+
     const shortestStyle = {
       color: '#1565c0',
       weight: 6,
@@ -321,16 +536,103 @@
     const locateBtn = document.getElementById('locateBtn');
     const routeBtn = document.getElementById('routeBtn');
     const resetBtn = document.getElementById('resetBtn');
+    const showOverlayBtn = document.getElementById('showOverlayBtn');
+    const updateOverlayBtn = document.getElementById('updateOverlayBtn');
+    const hideOverlayBtn = document.getElementById('hideOverlayBtn');
+    const navigatorTabBtn = document.getElementById('navigatorTabBtn');
+    const overlayTabBtn = document.getElementById('overlayTabBtn');
+    const navigatorPanel = document.getElementById('navigatorPanel');
+    const overlayPanel = document.getElementById('overlayPanel');
     const steepnessSlider = document.getElementById('steepnessSlider');
     const crimeSlider = document.getElementById('crimeSlider');
-    const airSlider = document.getElementById('airSlider');
-    const noiseSlider = document.getElementById('noiseSlider');
+    const shadeSlider = document.getElementById('shadeSlider');
+    const streetActivitySlider = document.getElementById('streetActivitySlider');
     const steepnessValue = document.getElementById('steepnessValue');
+    const crimeValue = document.getElementById('crimeValue');
+    const shadeValue = document.getElementById('shadeValue');
+    const streetActivityValue = document.getElementById('streetActivityValue');
+
+    const PREFERENCE_BETA_MAP = { 1: 0.5, 2: 1.5, 3: 3.0 };
+    const overlaySlopeCheck = document.getElementById('overlaySlopeCheck');
+    const overlayCrimeCheck = document.getElementById('overlayCrimeCheck');
+    const overlayAirCheck = document.getElementById('overlayAirCheck');
+    const overlayShadeCheck = document.getElementById('overlayShadeCheck');
+    const overlayWindCheck = document.getElementById('overlayWindCheck');
+    const overlayNoiseCheck = document.getElementById('overlayNoiseCheck');
+    const overlayStreetActivityCheck = document.getElementById('overlayStreetActivityCheck');
+    const overlayTrafficCheck = document.getElementById('overlayTrafficCheck');
+    const overlaySlopeState = document.getElementById('overlaySlopeState');
+    const overlayCrimeState = document.getElementById('overlayCrimeState');
+    const overlayAirState = document.getElementById('overlayAirState');
+    const overlayShadeState = document.getElementById('overlayShadeState');
+    const overlayWindState = document.getElementById('overlayWindState');
+    const overlayNoiseState = document.getElementById('overlayNoiseState');
+    const overlayStreetActivityState = document.getElementById('overlayStreetActivityState');
+    const overlayTrafficState = document.getElementById('overlayTrafficState');
 
     const originSelected = document.getElementById('originSelected');
     const destinationSelected = document.getElementById('destinationSelected');
     const searchStatus = document.getElementById('searchStatus');
     const statsContent = document.getElementById('statsContent');
+
+    const overlayControls = {
+      slope: {
+        label: 'Slope',
+        checkbox: overlaySlopeCheck,
+        stateEl: overlaySlopeState,
+        normColumn: 'slope_norm',
+        available: true
+      },
+      crime: {
+        label: 'Crime',
+        checkbox: overlayCrimeCheck,
+        stateEl: overlayCrimeState,
+        normColumn: 'crime_score_norm',
+        available: false
+      },
+      air: {
+        label: 'Air',
+        checkbox: overlayAirCheck,
+        stateEl: overlayAirState,
+        normColumn: 'air_score_norm',
+        available: false
+      },
+      shade: {
+        label: 'Shade',
+        checkbox: overlayShadeCheck,
+        stateEl: overlayShadeState,
+        normColumn: 'shade_score_norm',
+        available: false
+      },
+      wind: {
+        label: 'Wind',
+        checkbox: overlayWindCheck,
+        stateEl: overlayWindState,
+        normColumn: 'wind_score_norm',
+        available: false
+      },
+      noise: {
+        label: 'Noise',
+        checkbox: overlayNoiseCheck,
+        stateEl: overlayNoiseState,
+        normColumn: 'noise_score_norm',
+        available: false
+      },
+      street_activity: {
+        label: 'Street activity',
+        checkbox: overlayStreetActivityCheck,
+        stateEl: overlayStreetActivityState,
+        normColumn: 'street_activity_score_norm',
+        available: false
+      },
+      traffic: {
+        label: 'Traffic',
+        checkbox: overlayTrafficCheck,
+        stateEl: overlayTrafficState,
+        normColumn: 'traffic_score_norm',
+        available: false
+      }
+    };
 
     function formatMeters(meters) {
       if (meters >= 1000) {
@@ -353,16 +655,60 @@
     }
 
     function updatePreferenceUI() {
-      const value = Number(steepnessSlider.value);
-      steepnessValue.textContent = `${value}`;
+      const labels = { 1: 'Low', 2: 'Medium', 3: 'High' };
+      steepnessValue.textContent = labels[Number(steepnessSlider.value)];
+      crimeValue.textContent = labels[Number(crimeSlider.value)];
+      shadeValue.textContent = labels[Number(shadeSlider.value)];
+      streetActivityValue.textContent = labels[Number(streetActivitySlider.value)];
+    }
+
+    function updateOverlayControlUI() {
+      Object.values(overlayControls).forEach((control) => {
+        if (control.checkbox.disabled) {
+          control.stateEl.textContent = 'future';
+        } else {
+          control.stateEl.textContent = control.checkbox.checked ? 'yes' : 'no';
+        }
+      });
+    }
+
+    function switchPanel(panelName) {
+      const showNavigator = panelName === 'navigator';
+      navigatorPanel.classList.toggle('panel-hidden', !showNavigator);
+      overlayPanel.classList.toggle('panel-hidden', showNavigator);
+      navigatorTabBtn.classList.toggle('active', showNavigator);
+      overlayTabBtn.classList.toggle('active', !showNavigator);
+    }
+
+    function applyOverlayAvailability(manifest) {
+      const availability = {};
+      for (const variable of (manifest.variables || [])) {
+        availability[variable.key] = Boolean(variable.has_variation);
+      }
+
+      Object.entries(overlayControls).forEach(([key, control]) => {
+        const isAvailable = availability[key] === true;
+        control.available = isAvailable;
+        control.checkbox.disabled = !isAvailable;
+
+        if (!isAvailable) {
+          control.checkbox.checked = false;
+        }
+      });
+
+      if (!overlaySlopeCheck.disabled) {
+        overlaySlopeCheck.checked = true;
+      }
+
+      updateOverlayControlUI();
     }
 
     function getPreferences() {
       return {
         steepness: Number(steepnessSlider.value),
-        crime: Number(crimeSlider.value || 0),
-        air: Number(airSlider.value || 0),
-        noise: Number(noiseSlider.value || 0)
+        crime: PREFERENCE_BETA_MAP[Number(crimeSlider.value)],
+        shade: PREFERENCE_BETA_MAP[Number(shadeSlider.value)],
+        street_activity: PREFERENCE_BETA_MAP[Number(streetActivitySlider.value)]
       };
     }
 
@@ -375,6 +721,223 @@
       if (easiestLayer) {
         map.removeLayer(easiestLayer);
         easiestLayer = null;
+      }
+    }
+
+    function getOverlayConfig() {
+      return Object.entries(overlayControls).map(([key, control]) => ({
+        key,
+        label: control.label,
+        checkbox: control.checkbox,
+        normColumn: control.normColumn
+      }));
+    }
+
+    function getActiveOverlayConfig() {
+      return getOverlayConfig().filter((item) => item.checkbox.checked && !item.checkbox.disabled);
+    }
+
+    function computeOverlayScore(properties, activeConfig) {
+      let weightedSum = 0;
+
+      for (const item of activeConfig) {
+        const value = Number(properties[item.normColumn] ?? 0);
+        weightedSum += value;
+      }
+
+      return activeConfig.length > 0 ? weightedSum / activeConfig.length : 0;
+    }
+
+    function scoreToColor(score) {
+      const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+      const lerp = (a, b, t) => Math.round(a + (b - a) * t);
+      const hexToRgb = (hex) => {
+        const clean = hex.replace('#', '');
+        return {
+          r: parseInt(clean.slice(0, 2), 16),
+          g: parseInt(clean.slice(2, 4), 16),
+          b: parseInt(clean.slice(4, 6), 16)
+        };
+      };
+      const rgbToHex = ({ r, g, b }) => `#${[r, g, b].map((value) => value.toString(16).padStart(2, '0')).join('')}`;
+
+      const safeScore = clamp(Number(score) || 0, 0, 1);
+      const green = hexToRgb('#2e7d32');
+      const yellow = hexToRgb('#f9a825');
+      const red = hexToRgb('#c62828');
+
+      if (safeScore <= 0.5) {
+        const t = safeScore / 0.5;
+        return rgbToHex({
+          r: lerp(green.r, yellow.r, t),
+          g: lerp(green.g, yellow.g, t),
+          b: lerp(green.b, yellow.b, t)
+        });
+      }
+
+      const t = (safeScore - 0.5) / 0.5;
+      return rgbToHex({
+        r: lerp(yellow.r, red.r, t),
+        g: lerp(yellow.g, red.g, t),
+        b: lerp(yellow.b, red.b, t)
+      });
+    }
+
+    function buildOverlayStyleFunction(activeConfig) {
+      return function(feature) {
+        const score = computeOverlayScore(feature?.properties || {}, activeConfig);
+        return {
+          color: scoreToColor(score),
+          weight: 3,
+          opacity: 0.85,
+          lineCap: 'round',
+          lineJoin: 'round',
+          interactive: false
+        };
+      };
+    }
+
+    async function loadOverlayManifest() {
+      if (overlayManifest) {
+        return overlayManifest;
+      }
+
+      const response = await fetch('/static/network/network_tiles_manifest.json');
+      if (!response.ok) {
+        throw new Error('Failed to load overlay tile manifest');
+      }
+
+      overlayManifest = await response.json();
+      applyOverlayAvailability(overlayManifest);
+      return overlayManifest;
+    }
+
+    function intersectsBounds(a, b) {
+      return !(
+        a.max_lon < b.getWest() ||
+        a.min_lon > b.getEast() ||
+        a.max_lat < b.getSouth() ||
+        a.min_lat > b.getNorth()
+      );
+    }
+
+    function getVisibleTileIds(manifest, bounds) {
+      return Object.entries(manifest.tiles)
+        .filter(([, tileMeta]) => intersectsBounds(tileMeta.bounds, bounds))
+        .map(([tileId]) => tileId);
+    }
+
+    async function loadTileGeojson(tileId, tileMeta) {
+      if (overlayTileCache[tileId]) {
+        return overlayTileCache[tileId];
+      }
+
+      const response = await fetch(`/static/network/tiles/${tileMeta.file}`);
+      if (!response.ok) {
+        throw new Error(`Failed to load overlay tile: ${tileId}`);
+      }
+
+      overlayTileCache[tileId] = await response.json();
+      return overlayTileCache[tileId];
+    }
+
+    async function renderNetworkOverlay() {
+      const activeConfig = getActiveOverlayConfig();
+
+      if (!activeConfig.length) {
+        setStatus('Please select at least one overlay variable.', true);
+        return;
+      }
+
+      const manifest = await loadOverlayManifest();
+      const bounds = map.getBounds();
+      const visibleTileIds = getVisibleTileIds(manifest, bounds);
+
+      if (!visibleTileIds.length) {
+        setStatus('No overlay tiles intersect the current map view.', true);
+        return;
+      }
+
+      const styleFn = buildOverlayStyleFunction(activeConfig);
+      const visibleSet = new Set(visibleTileIds);
+
+      if (map.hasLayer(overlayGroup)) {
+        map.removeLayer(overlayGroup);
+      }
+
+      for (const [tileId, layer] of Object.entries(overlayTileLayers)) {
+        if (!visibleSet.has(tileId)) {
+          overlayGroup.removeLayer(layer);
+          delete overlayTileLayers[tileId];
+          delete overlayTileCache[tileId];
+        }
+      }
+
+      const newTileIds = visibleTileIds.filter((id) => !overlayTileLayers[id]);
+
+      for (const tileId of visibleTileIds) {
+        if (overlayTileLayers[tileId]) {
+          overlayTileLayers[tileId].setStyle(styleFn);
+        }
+      }
+
+      const loadedTiles = await Promise.all(
+        newTileIds.map(async (tileId) => {
+          const tileGeojson = await loadTileGeojson(tileId, manifest.tiles[tileId]);
+          return { tileId, tileGeojson };
+        })
+      );
+
+      for (const { tileId, tileGeojson } of loadedTiles) {
+        const seenIds = new Set();
+        const features = (tileGeojson.features || []).filter((f) => {
+          const id = f.properties?.display_id;
+          if (id == null) return true;
+          if (seenIds.has(id)) return false;
+          seenIds.add(id);
+          return true;
+        });
+        overlayTileLayers[tileId] = L.geoJSON(
+          { type: 'FeatureCollection', features },
+          { style: styleFn }
+        );
+        overlayGroup.addLayer(overlayTileLayers[tileId]);
+      }
+
+      overlayGroup.addTo(map);
+      overlayVisible = true;
+      lastVisibleTileKey = [...visibleTileIds].sort().join(',');
+      overlayGroup.bringToBack();
+      if (shortestLayer?.bringToFront) shortestLayer.bringToFront();
+      if (easiestLayer?.bringToFront) easiestLayer.bringToFront();
+
+      setStatus(`Network overlay updated using: ${activeConfig.map((i) => i.label).join(', ')}.`);
+    }
+
+    function hideNetworkOverlay() {
+      overlayGroup.clearLayers();
+      overlayTileLayers = {};
+      if (map.hasLayer(overlayGroup)) {
+        map.removeLayer(overlayGroup);
+      }
+      overlayVisible = false;
+      setStatus('Network overlay hidden.');
+    }
+
+    async function refreshOverlayOnMove() {
+      if (!overlayVisible) {
+        return;
+      }
+
+      try {
+        const manifest = await loadOverlayManifest();
+        const visibleTileIds = getVisibleTileIds(manifest, map.getBounds());
+        const tileKey = [...visibleTileIds].sort().join(',');
+        if (tileKey === lastVisibleTileKey) return;
+        await renderNetworkOverlay();
+      } catch (error) {
+        console.error(error);
+        setStatus(`Overlay refresh failed: ${error.message}`, true);
       }
     }
 
@@ -396,13 +959,13 @@
         <div style='margin-bottom:8px;'>
           <strong>Shortest Route</strong><br>
           Length: ${formatMeters(shortestStats.length_m || 0)}<br>
-          Avg slope: ${Number(shortestStats.avg_slope_pct || 0).toFixed(2)}%
+          Avg slope: ${Number(shortestStats.avg_slope_score || 0).toFixed(2)}%
         </div>
 
         <div>
           <strong>Personalised Route</strong><br>
           Length: ${formatMeters(easiestStats.length_m || 0)}<br>
-          Avg slope: ${Number(easiestStats.avg_slope_pct || 0).toFixed(2)}%
+          Avg slope: ${Number(easiestStats.avg_slope_score || 0).toFixed(2)}%
         </div>
       `;
     }
@@ -575,10 +1138,20 @@
           style: easiestStyle
         }).addTo(map);
 
+        if (overlayVisible) {
+          overlayGroup.bringToBack();
+        }
+        if (shortestLayer && shortestLayer.bringToFront) {
+          shortestLayer.bringToFront();
+        }
+        if (easiestLayer && easiestLayer.bringToFront) {
+          easiestLayer.bringToFront();
+        }
+
         const group = L.featureGroup([shortestLayer, easiestLayer]);
         const bounds = group.getBounds();
         if (bounds.isValid()) {
-          map.fitBounds(bounds, { padding: [30, 30] });
+          map.fitBounds(bounds, { padding: [30, 30],maxZoom: MAX_ALLOWED_ZOOM });
         }
 
         updateStatsFromApi(result);
@@ -594,35 +1167,7 @@
       }
     }
 
-    async function onMapClick(e) {
-      const { lat, lng } = e.latlng;
-      const clickedLatLng = { lat, lng };
-
-      setStatus('Point selected on the map. Resolving address name...');
-
-      let displayName = formatLatLng(clickedLatLng);
-      try {
-        const reverseResult = await reverseGeocode(lat, lng);
-        displayName = reverseResult.display_name || displayName;
-      } catch (error) {
-        console.warn('Reverse geocoding failed, fallback to coordinates.', error);
-      }
-
-      if (!originLatLng) {
-        setOrigin(clickedLatLng, displayName);
-        originInput.value = displayName;
-        originMarker.openPopup();
-        setStatus('Origin set from the map. Please set a destination next.');
-        return;
-      }
-
-      setDestination(clickedLatLng, displayName);
-      destinationInput.value = displayName;
-      destinationMarker.openPopup();
-      setStatus('Destination set from the map. Click "Find Route" to calculate the route.');
-    }
-
-    map.on('click', onMapClick);
+    map.on('moveend', refreshOverlayOnMove);
 
     function resetSelection() {
       if (originMarker) {
@@ -652,7 +1197,7 @@
 
       updateLocationTexts();
       statsContent.textContent = 'Route statistics will appear after you select an origin and destination.';
-      setStatus('Reset complete. Enter addresses, use location, or click the map to select points.');
+      setStatus('Reset complete. Enter addresses or use location to select points.');
     }
 
     function locateUser() {
@@ -712,18 +1257,65 @@
       );
     }
 
+    document.querySelectorAll('.basemap-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.basemap;
+        map.removeLayer(currentBasemapLayer);
+        currentBasemapLayer = L.tileLayer(BASEMAP_URLS[key], {
+          attribution: key === 'standard' ? OSM_ATTR : CARTO_ATTR,
+          maxZoom: MAX_ALLOWED_ZOOM,
+          detectRetina: false
+        }).addTo(map);
+        currentBasemapLayer.bringToBack();
+        document.querySelectorAll('.basemap-btn').forEach(b => b.classList.toggle('active', b === btn));
+      });
+    });
+
     searchOriginBtn.addEventListener('click', searchOrigin);
     searchDestinationBtn.addEventListener('click', searchDestination);
     locateBtn.addEventListener('click', locateUser);
     routeBtn.addEventListener('click', requestRoute);
     resetBtn.addEventListener('click', resetSelection);
-    steepnessSlider.addEventListener('input', updatePreferenceUI);
-    steepnessSlider.addEventListener('change', async () => {
-      if (originLatLng && destinationLatLng) {
-        setStatus('Steepness preference updated. Recalculating route...');
-        await requestRoute();
+    navigatorTabBtn.addEventListener('click', () => switchPanel('navigator'));
+    overlayTabBtn.addEventListener('click', () => switchPanel('overlay'));
+    Object.values(overlayControls).forEach((control) => {
+      control.checkbox.addEventListener('change', updateOverlayControlUI);
+    });
+
+    showOverlayBtn.addEventListener('click', async () => {
+      try {
+        setStatus('Loading static network overlay...');
+        await renderNetworkOverlay();
+      } catch (error) {
+        console.error(error);
+        setStatus(`Overlay loading failed: ${error.message}`, true);
       }
     });
+
+    updateOverlayBtn.addEventListener('click', async () => {
+      try {
+        setStatus('Updating network overlay...');
+        await renderNetworkOverlay();
+      } catch (error) {
+        console.error(error);
+        setStatus(`Overlay update failed: ${error.message}`, true);
+      }
+    });
+
+    hideOverlayBtn.addEventListener('click', hideNetworkOverlay);
+    steepnessSlider.addEventListener('input', updatePreferenceUI);
+    crimeSlider.addEventListener('input', updatePreferenceUI);
+    shadeSlider.addEventListener('input', updatePreferenceUI);
+    streetActivitySlider.addEventListener('input', updatePreferenceUI);
+
+    for (const slider of [steepnessSlider, crimeSlider, shadeSlider, streetActivitySlider]) {
+      slider.addEventListener('change', async () => {
+        if (originLatLng && destinationLatLng) {
+          setStatus('Preference updated. Recalculating route...');
+          await requestRoute();
+        }
+      });
+    }
 
     originInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
@@ -739,7 +1331,9 @@
 
     updateLocationTexts();
     updatePreferenceUI();
-    setStatus('Enter addresses, use your location, or click the map to choose origin and destination.');
+    updateOverlayControlUI();
+    switchPanel('navigator');
+    setStatus('Enter addresses or use your location to choose origin and destination.');
   </script>
 </body>
 </html>
