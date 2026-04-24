@@ -165,8 +165,81 @@
       font-size: 12px;
     }
 
-    .coming-soon {
-      opacity: 0.7;
+    .pref-slider-group {
+      margin-bottom: 18px;
+    }
+
+    .pref-slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .pref-slider-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #222;
+    }
+
+    .pref-slider-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: #4f83c2;
+    }
+
+    .pref-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 12px;
+      border-radius: 999px;
+      outline: none;
+      cursor: pointer;
+      background: linear-gradient(to right, #6f9fd8 0%, #6f9fd8 50%, #eef2f6 50%, #eef2f6 100%);
+      transition: background 0.15s ease;
+      margin: 0;
+    }
+
+    .pref-slider::-webkit-slider-runnable-track {
+      height: 12px;
+      border-radius: 999px;
+      background: transparent;
+    }
+
+    .pref-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 3px solid #8db2dc;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+      margin-top: -9px;
+    }
+
+    .pref-slider::-moz-range-track {
+      height: 12px;
+      border-radius: 999px;
+      background: transparent;
+    }
+
+    .pref-slider::-moz-range-thumb {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 3px solid #8db2dc;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+    }
+
+    .pref-slider-scale {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 6px;
+      font-size: 12px;
+      color: #8a8f98;
     }
 
     .tab-row {
@@ -326,36 +399,58 @@
       <div class='section'>
         <strong>User Preferences</strong>
 
-        <div class='control-card'>
-          <label for='steepnessSlider'>
-            <span>Steepness level</span>
-            <span id='steepnessValue' class='control-value'></span>
-          </label>
-          <input id='steepnessSlider' type='range' min='1' max='3' step='1' value='2' />
+        <div class='pref-slider-group'>
+          <div class='pref-slider-header'>
+            <span class='pref-slider-title'>Walking Effort</span>
+            <span id='steepnessValue' class='pref-slider-value'></span>
+          </div>
+          <input id='steepnessSlider' class='pref-slider' type='range' min='1' max='3' step='1' value='2' aria-label='Walking Effort' />
+          <div class='pref-slider-scale'><span>Low</span><span>Medium</span><span>High</span></div>
         </div>
 
-        <div class='control-card'>
-          <label for='crimeSlider'>
-            <span>Avoid unsafe areas</span>
-            <span id='crimeValue' class='control-value'></span>
-          </label>
-          <input id='crimeSlider' type='range' min='1' max='3' step='1' value='1' />
+        <div class='pref-slider-group'>
+          <div class='pref-slider-header'>
+            <span class='pref-slider-title'>Safety</span>
+            <span id='crimeValue' class='pref-slider-value'></span>
+          </div>
+          <input id='crimeSlider' class='pref-slider' type='range' min='1' max='3' step='1' value='1' aria-label='Safety' />
+          <div class='pref-slider-scale'><span>Low</span><span>Medium</span><span>High</span></div>
         </div>
 
-        <div class='control-card'>
-          <label for='shadeSlider'>
-            <span>Prefer shaded routes</span>
-            <span id='shadeValue' class='control-value'></span>
-          </label>
-          <input id='shadeSlider' type='range' min='1' max='3' step='1' value='1' />
+        <div class='pref-slider-group'>
+          <div class='pref-slider-header'>
+            <span class='pref-slider-title'>Comfortability</span>
+            <span id='shadeValue' class='pref-slider-value'></span>
+          </div>
+          <input id='shadeSlider' class='pref-slider' type='range' min='1' max='3' step='1' value='1' aria-label='Comfortability' />
+          <div class='pref-slider-scale'><span>Low</span><span>Medium</span><span>High</span></div>
         </div>
 
-        <div class='control-card'>
-          <label for='streetActivitySlider'>
-            <span>Prefer interesting streets</span>
-            <span id='streetActivityValue' class='control-value'></span>
-          </label>
-          <input id='streetActivitySlider' type='range' min='1' max='3' step='1' value='1' />
+        <div class='pref-slider-group'>
+          <div class='pref-slider-header'>
+            <span class='pref-slider-title'>Street Activity</span>
+            <span id='streetActivityValue' class='pref-slider-value'></span>
+          </div>
+          <input id='streetActivitySlider' class='pref-slider' type='range' min='1' max='3' step='1' value='1' aria-label='Street Activity' />
+          <div class='pref-slider-scale'><span>Low</span><span>Medium</span><span>High</span></div>
+        </div>
+
+        <div class='pref-slider-group'>
+          <div class='pref-slider-header'>
+            <span class='pref-slider-title'>Air Quality</span>
+            <span id='airValue' class='pref-slider-value'></span>
+          </div>
+          <input id='airSlider' class='pref-slider' type='range' min='1' max='3' step='1' value='1' aria-label='Air Quality' />
+          <div class='pref-slider-scale'><span>Low</span><span>Medium</span><span>High</span></div>
+        </div>
+
+        <div class='pref-slider-group'>
+          <div class='pref-slider-header'>
+            <span class='pref-slider-title'>Quietness</span>
+            <span id='noiseValue' class='pref-slider-value'></span>
+          </div>
+          <input id='noiseSlider' class='pref-slider' type='range' min='1' max='3' step='1' value='1' aria-label='Quietness' />
+          <div class='pref-slider-scale'><span>Low</span><span>Medium</span><span>High</span></div>
         </div>
       </div>
 
@@ -410,43 +505,33 @@
         <div class='control-card'>
           <div class='overlay-controls'>
             <div class='overlay-variable-row'>
-              <label><input id='overlaySlopeCheck' type='checkbox' checked /> Slope</label>
+              <label><input id='overlaySlopeCheck' type='checkbox' checked /> Walking effort</label>
               <span id='overlaySlopeState' class='control-value'>yes</span>
             </div>
 
             <div class='overlay-variable-row'>
-              <label><input id='overlayCrimeCheck' type='checkbox' disabled /> Crime</label>
-              <span id='overlayCrimeState' class='control-value'>future</span>
+              <label><input id='overlayCrimeCheck' type='checkbox' checked /> Safety</label>
+              <span id='overlayCrimeState' class='control-value'>yes</span>
             </div>
 
             <div class='overlay-variable-row'>
-              <label><input id='overlayAirCheck' type='checkbox' disabled /> Air</label>
-              <span id='overlayAirState' class='control-value'>future</span>
+              <label><input id='overlayStreetActivityCheck' type='checkbox' checked /> Street Activity</label>
+              <span id='overlayStreetActivityState' class='control-value'>yes</span>
             </div>
 
-            <div class='overlay-variable-row coming-soon'>
-              <label><input id='overlayShadeCheck' type='checkbox' disabled /> Shade</label>
-              <span id='overlayShadeState' class='control-value'>future</span>
+            <div class='overlay-variable-row'>
+              <label><input id='overlayShadeCheck' type='checkbox' /> Shade &amp; shelter</label>
+              <span id='overlayShadeState' class='control-value'>no</span>
             </div>
 
-            <div class='overlay-variable-row coming-soon'>
-              <label><input id='overlayWindCheck' type='checkbox' disabled /> Wind</label>
-              <span id='overlayWindState' class='control-value'>future</span>
+            <div class='overlay-variable-row'>
+              <label><input id='overlayAirCheck' type='checkbox' /> Air quality</label>
+              <span id='overlayAirState' class='control-value'>no</span>
             </div>
 
-            <div class='overlay-variable-row coming-soon'>
-              <label><input id='overlayNoiseCheck' type='checkbox' disabled /> Noise</label>
-              <span id='overlayNoiseState' class='control-value'>future</span>
-            </div>
-
-            <div class='overlay-variable-row coming-soon'>
-              <label><input id='overlayStreetActivityCheck' type='checkbox' disabled /> Street activity</label>
-              <span id='overlayStreetActivityState' class='control-value'>future</span>
-            </div>
-
-            <div class='overlay-variable-row coming-soon'>
-              <label><input id='overlayTrafficCheck' type='checkbox' disabled /> Traffic</label>
-              <span id='overlayTrafficState' class='control-value'>future</span>
+            <div class='overlay-variable-row'>
+              <label><input id='overlayNoiseCheck' type='checkbox' /> Quietness</label>
+              <span id='overlayNoiseState' class='control-value'>no</span>
             </div>
           </div>
 
@@ -456,7 +541,7 @@
             <button id='hideOverlayBtn' type='button'>Hide Overlay</button>
           </div>
 
-          <div class='small-text'>Overlay uses equal weighting across the selected variables and combines normalized score columns in the browser.</div>
+          <div class='small-text'>Overlay colour uses weighted mean over active normalized penalty columns (current default weight = 1 per active variable).</div>
         </div>
       </div>
     </div>
@@ -547,28 +632,28 @@
     const crimeSlider = document.getElementById('crimeSlider');
     const shadeSlider = document.getElementById('shadeSlider');
     const streetActivitySlider = document.getElementById('streetActivitySlider');
+    const airSlider = document.getElementById('airSlider');
+    const noiseSlider = document.getElementById('noiseSlider');
     const steepnessValue = document.getElementById('steepnessValue');
     const crimeValue = document.getElementById('crimeValue');
     const shadeValue = document.getElementById('shadeValue');
     const streetActivityValue = document.getElementById('streetActivityValue');
+    const airValue = document.getElementById('airValue');
+    const noiseValue = document.getElementById('noiseValue');
 
     const PREFERENCE_BETA_MAP = { 1: 0.5, 2: 1.5, 3: 3.0 };
     const overlaySlopeCheck = document.getElementById('overlaySlopeCheck');
     const overlayCrimeCheck = document.getElementById('overlayCrimeCheck');
-    const overlayAirCheck = document.getElementById('overlayAirCheck');
-    const overlayShadeCheck = document.getElementById('overlayShadeCheck');
-    const overlayWindCheck = document.getElementById('overlayWindCheck');
-    const overlayNoiseCheck = document.getElementById('overlayNoiseCheck');
     const overlayStreetActivityCheck = document.getElementById('overlayStreetActivityCheck');
-    const overlayTrafficCheck = document.getElementById('overlayTrafficCheck');
+    const overlayShadeCheck = document.getElementById('overlayShadeCheck');
+    const overlayAirCheck = document.getElementById('overlayAirCheck');
+    const overlayNoiseCheck = document.getElementById('overlayNoiseCheck');
     const overlaySlopeState = document.getElementById('overlaySlopeState');
     const overlayCrimeState = document.getElementById('overlayCrimeState');
-    const overlayAirState = document.getElementById('overlayAirState');
-    const overlayShadeState = document.getElementById('overlayShadeState');
-    const overlayWindState = document.getElementById('overlayWindState');
-    const overlayNoiseState = document.getElementById('overlayNoiseState');
     const overlayStreetActivityState = document.getElementById('overlayStreetActivityState');
-    const overlayTrafficState = document.getElementById('overlayTrafficState');
+    const overlayShadeState = document.getElementById('overlayShadeState');
+    const overlayAirState = document.getElementById('overlayAirState');
+    const overlayNoiseState = document.getElementById('overlayNoiseState');
 
     const originSelected = document.getElementById('originSelected');
     const destinationSelected = document.getElementById('destinationSelected');
@@ -576,63 +661,51 @@
     const statsContent = document.getElementById('statsContent');
 
     const overlayControls = {
-      slope: {
-        label: 'Slope',
+      walking_effort: {
+        fallbackLabel: 'Walking effort',
         checkbox: overlaySlopeCheck,
         stateEl: overlaySlopeState,
-        normColumn: 'slope_norm',
+        fallbackNormColumn: 'walking_effort_norm',
         available: true
       },
-      crime: {
-        label: 'Crime',
+      safety: {
+        fallbackLabel: 'Safety',
         checkbox: overlayCrimeCheck,
         stateEl: overlayCrimeState,
-        normColumn: 'crime_score_norm',
-        available: false
+        fallbackNormColumn: 'safety_norm',
+        available: true
       },
-      air: {
-        label: 'Air',
-        checkbox: overlayAirCheck,
-        stateEl: overlayAirState,
-        normColumn: 'air_score_norm',
-        available: false
-      },
-      shade: {
-        label: 'Shade',
-        checkbox: overlayShadeCheck,
-        stateEl: overlayShadeState,
-        normColumn: 'shade_score_norm',
-        available: false
-      },
-      wind: {
-        label: 'Wind',
-        checkbox: overlayWindCheck,
-        stateEl: overlayWindState,
-        normColumn: 'wind_score_norm',
-        available: false
-      },
-      noise: {
-        label: 'Noise',
-        checkbox: overlayNoiseCheck,
-        stateEl: overlayNoiseState,
-        normColumn: 'noise_score_norm',
-        available: false
-      },
-      street_activity: {
-        label: 'Street activity',
+      activity: {
+        fallbackLabel: 'Street activity',
         checkbox: overlayStreetActivityCheck,
         stateEl: overlayStreetActivityState,
-        normColumn: 'street_activity_score_norm',
-        available: false
+        fallbackNormColumn: 'activity_norm',
+        available: true
       },
-      traffic: {
-        label: 'Traffic',
-        checkbox: overlayTrafficCheck,
-        stateEl: overlayTrafficState,
-        normColumn: 'traffic_score_norm',
-        available: false
+      shade_shelter: {
+        fallbackLabel: 'Comfortability',
+        checkbox: overlayShadeCheck,
+        stateEl: overlayShadeState,
+        fallbackNormColumn: 'shade_shelter_norm',
+        available: true
+      },
+      air: {
+        fallbackLabel: 'Air quality',
+        checkbox: overlayAirCheck,
+        stateEl: overlayAirState,
+        fallbackNormColumn: 'air_norm',
+        available: true
+      },
+      noise: {
+        fallbackLabel: 'Noise',
+        checkbox: overlayNoiseCheck,
+        stateEl: overlayNoiseState,
+        fallbackNormColumn: 'noise_norm',
+        available: true
       }
     };
+
+    let overlayManifestVariablesByKey = {};
 
     function formatMeters(meters) {
       if (meters >= 1000) {
@@ -650,22 +723,65 @@
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
+        .replace(/\"/g, '&quot;')
         .replace(/'/g, '&#039;');
     }
 
-    function updatePreferenceUI() {
-      const labels = { 1: 'Low', 2: 'Medium', 3: 'High' };
-      steepnessValue.textContent = labels[Number(steepnessSlider.value)];
-      crimeValue.textContent = labels[Number(crimeSlider.value)];
-      shadeValue.textContent = labels[Number(shadeSlider.value)];
-      streetActivityValue.textContent = labels[Number(streetActivitySlider.value)];
+    function updateSingleSliderUI(slider, valueEl) {
+      const value = Number(slider.value);
+      const percent = ((value - Number(slider.min)) / (Number(slider.max) - Number(slider.min))) * 100;
+
+      slider.style.background =
+        `linear-gradient(to right, #6f9fd8 0%, #6f9fd8 ${percent}%, #eef2f6 ${percent}%, #eef2f6 100%)`;
+
+      if (valueEl) {
+        valueEl.textContent = '';
+      }
     }
+
+    function updatePreferenceUI() {
+      const sliderPairs = [
+        [steepnessSlider, steepnessValue],
+        [crimeSlider, crimeValue],
+        [streetActivitySlider, streetActivityValue],
+        [shadeSlider, shadeValue],
+        [airSlider, airValue],
+        [noiseSlider, noiseValue]
+      ];
+
+      sliderPairs.forEach(([slider, valueEl]) => {
+        if (!slider) return;
+        updateSingleSliderUI(slider, valueEl);
+      });
+    }
+
+    function initPreferenceSliders() {
+      const sliderPairs = [
+        ['steepnessSlider', 'steepnessValue'],
+        ['crimeSlider', 'crimeValue'],
+        ['streetActivitySlider', 'streetActivityValue'],
+        ['shadeSlider', 'shadeValue'],
+        ['airSlider', 'airValue'],
+        ['noiseSlider', 'noiseValue']
+      ];
+
+      sliderPairs.forEach(([sliderId, valueId]) => {
+        const slider = document.getElementById(sliderId);
+        const valueEl = document.getElementById(valueId);
+
+        if (!slider) return;
+
+        updateSingleSliderUI(slider, valueEl);
+        slider.addEventListener('input', () => updateSingleSliderUI(slider, valueEl));
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', initPreferenceSliders);
 
     function updateOverlayControlUI() {
       Object.values(overlayControls).forEach((control) => {
         if (control.checkbox.disabled) {
-          control.stateEl.textContent = 'future';
+          control.stateEl.textContent = 'unavailable';
         } else {
           control.stateEl.textContent = control.checkbox.checked ? 'yes' : 'no';
         }
@@ -680,35 +796,66 @@
       overlayTabBtn.classList.toggle('active', !showNavigator);
     }
 
-    function applyOverlayAvailability(manifest) {
-      const availability = {};
-      for (const variable of (manifest.variables || [])) {
-        availability[variable.key] = Boolean(variable.has_variation);
+    function toOverlayManifestMap(manifest) {
+      const map = {};
+      for (const variable of (manifest?.variables || [])) {
+        if (variable?.key) {
+          map[variable.key] = variable;
+        }
       }
+      return map;
+    }
+
+    function getOverlayVariableMeta(key) {
+      const control = overlayControls[key] || {};
+      const manifestVariable = overlayManifestVariablesByKey[key] || {};
+      const rawWeight = Number(manifestVariable.default_weight ?? manifestVariable.weight ?? 1.0);
+
+      return {
+        key,
+        label: String(manifestVariable.label || control.fallbackLabel || key),
+        normColumn: String(manifestVariable.norm_column || control.fallbackNormColumn || `${key}_norm`),
+        weight: Number.isFinite(rawWeight) && rawWeight > 0 ? rawWeight : 1.0,
+      };
+    }
+
+    function applyOverlayAvailability(manifest) {
+      overlayManifestVariablesByKey = toOverlayManifestMap(manifest);
+      const hasManifestVariables = Object.keys(overlayManifestVariablesByKey).length > 0;
+      const defaultVariables = new Set(
+        Array.isArray(manifest?.default_variables) && manifest.default_variables.length
+          ? manifest.default_variables
+          : ['walking_effort']
+      );
 
       Object.entries(overlayControls).forEach(([key, control]) => {
-        const isAvailable = availability[key] === true;
+        const manifestVariable = overlayManifestVariablesByKey[key];
+        const isAvailable = manifestVariable
+          ? Boolean(manifestVariable.has_variation)
+          : !hasManifestVariables && Boolean(control.available);
+
         control.available = isAvailable;
         control.checkbox.disabled = !isAvailable;
 
         if (!isAvailable) {
           control.checkbox.checked = false;
+          return;
         }
-      });
 
-      if (!overlaySlopeCheck.disabled) {
-        overlaySlopeCheck.checked = true;
-      }
+        control.checkbox.checked = defaultVariables.has(key);
+      });
 
       updateOverlayControlUI();
     }
 
     function getPreferences() {
       return {
-        steepness: Number(steepnessSlider.value),
-        crime: PREFERENCE_BETA_MAP[Number(crimeSlider.value)],
-        shade: PREFERENCE_BETA_MAP[Number(shadeSlider.value)],
-        street_activity: PREFERENCE_BETA_MAP[Number(streetActivitySlider.value)]
+        walk:          Number(steepnessSlider.value),
+        safety:        PREFERENCE_BETA_MAP[Number(crimeSlider.value)],
+        shade_shelter: PREFERENCE_BETA_MAP[Number(shadeSlider.value)],
+        activity:      PREFERENCE_BETA_MAP[Number(streetActivitySlider.value)],
+        air:           PREFERENCE_BETA_MAP[Number(airSlider.value)],
+        noise:         PREFERENCE_BETA_MAP[Number(noiseSlider.value)]
       };
     }
 
@@ -726,10 +873,8 @@
 
     function getOverlayConfig() {
       return Object.entries(overlayControls).map(([key, control]) => ({
-        key,
-        label: control.label,
+        ...getOverlayVariableMeta(key),
         checkbox: control.checkbox,
-        normColumn: control.normColumn
       }));
     }
 
@@ -739,16 +884,31 @@
 
     function computeOverlayScore(properties, activeConfig) {
       let weightedSum = 0;
+      let totalWeight = 0;
 
       for (const item of activeConfig) {
-        const value = Number(properties[item.normColumn] ?? 0);
-        weightedSum += value;
+        const weight = Number(item.weight ?? 1.0);
+        const value = Number(properties[item.normColumn]);
+
+        if (!Number.isFinite(weight) || weight <= 0) continue;
+        if (!Number.isFinite(value)) continue;
+
+        weightedSum += weight * value;
+        totalWeight += weight;
       }
 
-      return activeConfig.length > 0 ? weightedSum / activeConfig.length : 0;
+      if (totalWeight <= 0) {
+        return null;
+      }
+
+      return weightedSum / totalWeight;
     }
 
     function scoreToColor(score) {
+      if (score === null || score === undefined || !Number.isFinite(Number(score))) {
+        return '#9e9e9e';
+      }
+
       const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
       const lerp = (a, b, t) => Math.round(a + (b - a) * t);
       const hexToRgb = (hex) => {
@@ -786,10 +946,11 @@
     function buildOverlayStyleFunction(activeConfig) {
       return function(feature) {
         const score = computeOverlayScore(feature?.properties || {}, activeConfig);
+        const isNeutral = score === null;
         return {
           color: scoreToColor(score),
           weight: 3,
-          opacity: 0.85,
+          opacity: isNeutral ? 0.45 : 0.85,
           lineCap: 'round',
           lineJoin: 'round',
           interactive: false
@@ -843,11 +1004,6 @@
 
     async function renderNetworkOverlay() {
       const activeConfig = getActiveOverlayConfig();
-
-      if (!activeConfig.length) {
-        setStatus('Please select at least one overlay variable.', true);
-        return;
-      }
 
       const manifest = await loadOverlayManifest();
       const bounds = map.getBounds();
@@ -911,7 +1067,11 @@
       if (shortestLayer?.bringToFront) shortestLayer.bringToFront();
       if (easiestLayer?.bringToFront) easiestLayer.bringToFront();
 
-      setStatus(`Network overlay updated using: ${activeConfig.map((i) => i.label).join(', ')}.`);
+      if (!activeConfig.length) {
+        setStatus('Network overlay updated in neutral state (no active variables selected).');
+      } else {
+        setStatus(`Network overlay updated using weighted mean of: ${activeConfig.map((i) => i.label).join(', ')}.`);
+      }
     }
 
     function hideNetworkOverlay() {
@@ -945,27 +1105,33 @@
       const shortestStats = result.shortest?.stats || {};
       const easiestStats = result.easiest?.stats || {};
       const preferences = result.preferences || {};
-      const steepness = Number(preferences.steepness ?? steepnessSlider.value ?? 2);
+      // Prefer canonical key from backend; keep temporary fallback alias.
+      const walkLevel = Number(preferences.walk ?? preferences.steepness ?? steepnessSlider.value ?? 2);
+      // Prefer canonical key from backend; keep temporary fallback alias.
+      const shortestAvgWalkingEffort = Number(shortestStats.avg_walking_effort ?? shortestStats.avg_slope_score ?? 0);
+      const easiestAvgWalkingEffort = Number(easiestStats.avg_walking_effort ?? easiestStats.avg_slope_score ?? 0);
 
       statsContent.innerHTML = `
         <div style='margin-bottom:8px;'>
           <strong>Active preference</strong><br>
-          Steepness level: ${steepness}<br>
-          Crime: canonical column reserved, current values are placeholders<br>
-          Air: canonical column reserved, current values are placeholders<br>
-          Noise: UI placeholder only
+          Walking effort level: ${walkLevel}<br>
+          Safety weight: ${Number(preferences.safety ?? 0).toFixed(2)}<br>
+          Activity weight: ${Number(preferences.activity ?? 0).toFixed(2)}<br>
+          Shade & shelter weight: ${Number(preferences.shade_shelter ?? 0).toFixed(2)}<br>
+          Air weight: ${Number(preferences.air ?? 0).toFixed(2)}<br>
+          Noise weight: ${Number(preferences.noise ?? 0).toFixed(2)}
         </div>
 
         <div style='margin-bottom:8px;'>
           <strong>Shortest Route</strong><br>
           Length: ${formatMeters(shortestStats.length_m || 0)}<br>
-          Avg slope: ${Number(shortestStats.avg_slope_score || 0).toFixed(2)}%
+          Avg walking effort penalty: ${shortestAvgWalkingEffort.toFixed(4)}
         </div>
 
         <div>
           <strong>Personalised Route</strong><br>
           Length: ${formatMeters(easiestStats.length_m || 0)}<br>
-          Avg slope: ${Number(easiestStats.avg_slope_score || 0).toFixed(2)}%
+          Avg walking effort penalty: ${easiestAvgWalkingEffort.toFixed(4)}
         </div>
       `;
     }
@@ -1303,12 +1469,8 @@
     });
 
     hideOverlayBtn.addEventListener('click', hideNetworkOverlay);
-    steepnessSlider.addEventListener('input', updatePreferenceUI);
-    crimeSlider.addEventListener('input', updatePreferenceUI);
-    shadeSlider.addEventListener('input', updatePreferenceUI);
-    streetActivitySlider.addEventListener('input', updatePreferenceUI);
 
-    for (const slider of [steepnessSlider, crimeSlider, shadeSlider, streetActivitySlider]) {
+    for (const slider of [steepnessSlider, crimeSlider, shadeSlider, streetActivitySlider, airSlider, noiseSlider]) {
       slider.addEventListener('change', async () => {
         if (originLatLng && destinationLatLng) {
           setStatus('Preference updated. Recalculating route...');
@@ -1330,7 +1492,6 @@
     });
 
     updateLocationTexts();
-    updatePreferenceUI();
     updateOverlayControlUI();
     switchPanel('navigator');
     setStatus('Enter addresses or use your location to choose origin and destination.');

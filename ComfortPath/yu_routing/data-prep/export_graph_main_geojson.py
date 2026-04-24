@@ -1,14 +1,24 @@
 """
 Export tiled static network overlay data for the web map.
 
-This export is separate from the routing cache on purpose:
-- the graph cache remains focused on fast route solving
-- the overlay export stores lightweight segment attributes for map colouring
-- the overlay is split into static tiles so the frontend only loads what is visible
-
-Main outputs:
+Reads from data/main_graph.pkl and writes:
 - routing-web/static/network/tiles/*.geojson
 - routing-web/static/network/network_tiles_manifest.json
+
+Each segment carries penalty fields (higher = worse) so the overlay
+colour scale is consistent: green = good, red = bad.
+
+Penalty fields exported:
+walking_effort_penalty  — slope / walking effort
+safety_penalty          — inverse of feel-safe score
+activity_penalty        — inverse of things-to-see score
+shade_shelter_penalty   — inverse of score_shade_shelter_final
+air_penalty             — inverse of score_clean_air
+noise_penalty           — inverse of score_not_too_noisy
+
+Raw score fields also exported for tooltip display:
+score_feel_safe, score_things_see_do,
+score_shade_shelter_final, score_clean_air, score_not_too_noisy
 """
 
 import json
@@ -30,40 +40,41 @@ MANIFEST_PATH = STATIC_NETWORK_DIR / "network_tiles_manifest.json"
 DISPLAY_COLUMNS = [
     "display_id",
     "osm_id",
-    "slope_score",
-    "crime_score",
-    "air_score",
-    "shade_score",
-    "wind_score",
-    "noise_score",
-    "street_activity_score",
-    "traffic_score",
-    "slope_norm",
-    "crime_score_norm",
-    "air_score_norm",
-    "shade_score_norm",
-    "wind_score_norm",
-    "noise_score_norm",
-    "street_activity_score_norm",
-    "traffic_score_norm",
+    # raw scores (higher = better)
+    "score_feel_safe",
+    "score_things_see_do",
+    "score_shade_shelter_final",
+    "score_clean_air",
+    "score_not_too_noisy",
+    # penalties (higher = worse)
+    "walking_effort_penalty",
+    "safety_penalty",
+    "activity_penalty",
+    "shade_shelter_penalty",
+    "air_penalty",
+    "noise_penalty",
+    # normalised penalties for overlay colour scale
+    "walking_effort_norm",
+    "safety_norm",
+    "activity_norm",
+    "shade_shelter_norm",
+    "air_norm",
+    "noise_norm",
     "geometry",
 ]
 
-# (raw_column, label, manifest_key, norm_column)
+# penalty_column, label, manifest_key, norm_column
 VARIABLE_SPECS = [
-    ("slope_score", "Slope", "slope", "slope_norm"),
-    ("crime_score", "Crime", "crime", "crime_score_norm"),
-    ("air_score", "Air", "air", "air_score_norm"),
-    ("shade_score", "Shade", "shade", "shade_score_norm"),
-    ("wind_score", "Wind", "wind", "wind_score_norm"),
-    ("noise_score", "Noise", "noise", "noise_score_norm"),
-    ("street_activity_score", "Street activity", "street_activity", "street_activity_score_norm"),
-    ("traffic_score", "Traffic", "traffic", "traffic_score_norm"),
+    ("walking_effort_penalty", "Walking effort", "walking_effort", "walking_effort_norm"),
+    ("safety_penalty", "Safety", "safety", "safety_norm"),
+    ("activity_penalty", "Street activity","activity","activity_norm"),
+    ("shade_shelter_penalty", "Shade & shelter","shade_shelter", "shade_shelter_norm"),
+    ("air_penalty", "Air quality","air", "air_norm"),
+    ("noise_penalty","Noise","noise","noise_norm"),
 ]
 
 SIMPLIFY_TOLERANCE_M = 8.0
 TILE_SIZE_DEG = 0.02
-
 DISPLAY_EXCLUDE_FCLASS = {"footway", "path", "steps", "cycleway", "bridleway"}
 
 
@@ -71,32 +82,33 @@ def minmax_normalize(series: pd.Series) -> pd.Series:
     series = pd.to_numeric(series, errors="coerce").fillna(0.0)
     min_val = float(series.min())
     max_val = float(series.max())
-
     if max_val > min_val:
         return (series - min_val) / (max_val - min_val)
-
     return pd.Series(0.0, index=series.index, dtype=float)
 
 
 def build_display_gdf(graph) -> gpd.GeoDataFrame:
     rows = []
 
-    for u, v, data in graph.edges(data=True):
+    for _, _, data in graph.edges(data=True):
         fclass = str(data.get("fclass") or "").lower()
         if fclass in DISPLAY_EXCLUDE_FCLASS:
             continue
         rows.append({
-            "osm_id": data.get("osm_id"),
-            "length_m": data.get("length_m"),
-            "slope_score": data.get("slope_score", 0.0),
-            "crime_score": data.get("crime_score", 0.0),
-            "air_score": data.get("air_score", 0.0),
-            "shade_score": data.get("shade_score", 0.0),
-            "wind_score": data.get("wind_score", 0.0),
-            "noise_score": data.get("noise_score", 0.0),
-            "street_activity_score": data.get("street_activity_score", 0.0),
-            "traffic_score": data.get("traffic_score", 0.0),
-            "geometry": data.get("geometry"),
+            "osm_id":                data.get("osm_id"),
+            "length_m":              data.get("length_m"),
+            "score_feel_safe":       data.get("score_feel_safe", 0.5),
+            "score_things_see_do":   data.get("score_things_see_do", 0.5),
+            "score_shade_shelter_final": data.get("score_shade_shelter_final", 0.5),
+            "score_clean_air":       data.get("score_clean_air", 0.5),
+            "score_not_too_noisy":   data.get("score_not_too_noisy", 0.5),
+            "walking_effort_penalty":data.get("walking_effort_penalty", 0.0),
+            "safety_penalty":        data.get("safety_penalty", 0.5),
+            "activity_penalty":      data.get("activity_penalty", 0.5),
+            "shade_shelter_penalty": data.get("shade_shelter_penalty", 0.5),
+            "air_penalty":           data.get("air_penalty", 0.0),
+            "noise_penalty":         data.get("noise_penalty", 0.0),
+            "geometry":              data.get("geometry"),
         })
 
     gdf = gpd.GeoDataFrame(rows, geometry="geometry", crs="EPSG:27700")
@@ -110,31 +122,42 @@ def build_display_gdf(graph) -> gpd.GeoDataFrame:
     )
 
     agg_map = {"osm_id": "first", "length_m": "sum"}
-    for score_col, _, _, _ in VARIABLE_SPECS:
-        agg_map[score_col] = "max"
+    raw_score_cols = [
+        "score_feel_safe",
+        "score_things_see_do",
+        "score_shade_shelter_final",
+        "score_clean_air",
+        "score_not_too_noisy",
+    ]
+    for col in raw_score_cols:
+        agg_map[col] = "mean"
+    for penalty_col, _, _, _ in VARIABLE_SPECS:
+        agg_map[penalty_col] = "max"  # worst segment on a shared osm_id wins
 
     gdf = gdf.dissolve(by="display_id", aggfunc=agg_map, as_index=False)
     gdf["geometry"] = gdf.geometry.simplify(SIMPLIFY_TOLERANCE_M, preserve_topology=True)
 
-    for score_col, _, _, norm_col in VARIABLE_SPECS:
-        gdf[score_col] = gdf[score_col].fillna(0.0)
-        gdf[norm_col] = minmax_normalize(gdf[score_col])
+    for penalty_col, _, _, norm_col in VARIABLE_SPECS:
+        gdf[penalty_col] = gdf[penalty_col].fillna(0.0)
+        gdf[norm_col] = minmax_normalize(gdf[penalty_col])
 
     keep_cols = [col for col in DISPLAY_COLUMNS if col in gdf.columns]
     return gdf[keep_cols].copy()
 
 
-def build_manifest(gdf: gpd.GeoDataFrame, tile_index: dict[str, dict]) -> dict:
+def build_manifest(gdf: gpd.GeoDataFrame, tile_index: dict) -> dict:
     variables = []
-
-    for score_col, label, key, norm_col in VARIABLE_SPECS:
-        score_series = gdf[score_col]
+    for penalty_col, label, key, norm_col in VARIABLE_SPECS:
+        series = gdf[penalty_col]
         variables.append({
             "key": key,
             "label": label,
-            "raw_column": score_col,
+            "penalty_column": penalty_col,
             "norm_column": norm_col,
-            "has_variation": bool(float(score_series.max()) > float(score_series.min())),
+            # Overlay weighted mean currently defaults to equal weights.
+            # Frontend may override if future UI/API supplies custom weights.
+            "default_weight": 1.0,
+            "has_variation": bool(float(series.max()) > float(series.min())),
         })
 
     return {
@@ -149,7 +172,18 @@ def build_manifest(gdf: gpd.GeoDataFrame, tile_index: dict[str, dict]) -> dict:
         },
         "tiles": tile_index,
         "variables": variables,
-        "default_variables": ["slope"],
+        # Defaults for initial overlay selection in UI
+        "default_variables": ["walking_effort", "safety", "activity"],
+        "overlay_scoring": {
+            "value_semantics": "penalty",
+            "direction": "higher_is_worse",
+            "formula": "sum(w_i * penalty_i_norm) / sum(w_i) over active variables",
+            "neutral_state": "if no active variables or denominator==0, score=null",
+            "color_mapping": {
+                "green": "better",
+                "red": "worse",
+            },
+        },
     }
 
 
@@ -158,21 +192,18 @@ def add_tile_ids(gdf_4326: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     centroids = out.geometry.representative_point()
     min_lon = float(out.total_bounds[0])
     min_lat = float(out.total_bounds[1])
-
     out["tile_x"] = ((centroids.x - min_lon) / TILE_SIZE_DEG).apply(int)
     out["tile_y"] = ((centroids.y - min_lat) / TILE_SIZE_DEG).apply(int)
     out["tile_id"] = out.apply(lambda row: f"tile_{row['tile_x']}_{row['tile_y']}", axis=1)
     return out
 
 
-def export_tiles(gdf_4326: gpd.GeoDataFrame) -> dict[str, dict]:
+def export_tiles(gdf_4326: gpd.GeoDataFrame) -> dict:
     tile_index = {}
-
     for tile_id, tile_gdf in gdf_4326.groupby("tile_id"):
         tile_path = TILES_DIR / f"{tile_id}.geojson"
         tile_export = tile_gdf.drop(columns=["tile_x", "tile_y", "tile_id"]).copy()
         tile_export.to_file(tile_path, driver="GeoJSON")
-
         minx, miny, maxx, maxy = tile_gdf.total_bounds
         tile_index[tile_id] = {
             "file": tile_path.name,
@@ -184,7 +215,6 @@ def export_tiles(gdf_4326: gpd.GeoDataFrame) -> dict[str, dict]:
                 "max_lat": float(maxy),
             },
         }
-
     return tile_index
 
 
@@ -204,8 +234,8 @@ def main():
     manifest = build_manifest(display_gdf_4326, tile_index)
     MANIFEST_PATH.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
-    print("Exported tiled static network overlay data to:", TILES_DIR)
-    print("Exported overlay manifest to:", MANIFEST_PATH)
+    print("Exported tiled overlay to:", TILES_DIR)
+    print("Manifest written to:", MANIFEST_PATH)
     print("Rows:", len(display_gdf_4326))
     print("Tiles:", len(tile_index))
 

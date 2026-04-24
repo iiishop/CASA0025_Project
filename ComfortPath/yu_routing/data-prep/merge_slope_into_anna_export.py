@@ -1,11 +1,16 @@
 """
-Merge slope_score and slope_norm into Anna's final export gpkg.
+Merge slope-derived walking-effort fields into Anna's final export gpkg.
 
 Methodology note:
 - first try a geometry-derived segment key match in a strict form
 - then retry unmatched rows with a more relaxed geometry key
 - only if a very small mis-match remains, use aligned row-order as a final fallback
 - keep Anna's final export geometry & ids untouched
+
+Runtime contract note:
+- score_walking_effort is the canonical raw field (higher = easier / better)
+- walking_effort_penalty will later be derived downstream as 1 - score_walking_effort
+- slope_score and slope_norm are retained here as engineering / compatibility fields
 """
 
 from pathlib import Path
@@ -19,7 +24,7 @@ from sklearn.preprocessing import MinMaxScaler
 BASE_DIR = Path(__file__).resolve().parent
 ANNA_PATH = BASE_DIR / "anna" / "260422_roads_export_final_with_env.gpkg"
 OUR_PATH = BASE_DIR / "data" / "network_routing_input.gpkg"
-OUT_PATH = BASE_DIR / "anna" / "260422_roads_export_with_slope.gpkg"
+OUT_PATH = BASE_DIR / "anna" / "260422_roads_export_with_env_slope.gpkg"
 COMMON_CRS = "EPSG:27700"
 STRICT_ROUND_DIGITS = 3
 RELAXED_ROUND_DIGITS = 1
@@ -36,7 +41,7 @@ def _as_line(geom):
         merged = linemerge(geom)
         if merged.geom_type == "LineString":
             return merged
-        # Fallback: keep the longest part if the geometry still cannot merge into one line
+        # keep the longest part if the geometry still cannot merge into one line
         return max(merged.geoms, key=lambda g: g.length)
 
     return None
@@ -157,8 +162,18 @@ if missing_matches > 0:
 scaler = MinMaxScaler()
 anna_out["slope_norm"] = scaler.fit_transform(anna_out[["slope_score"]])
 
-# Align with Anna's score_* naming scheme; higher = easier (less effort), lower = steeper
+# Align with Anna's score_ naming scheme; 
+# higher = easier (less effort), lower = steeper
 anna_out["score_walking_effort"] = 1.0 - anna_out["slope_norm"]
+
+consistency_diff = (anna_out["score_walking_effort"] - (1.0 - anna_out["slope_norm"])).abs()
+max_consistency_diff = float(consistency_diff.max())
+if max_consistency_diff > 1e-12:
+    raise ValueError(
+        "score_walking_effort is inconsistent with 1 - slope_norm "
+        f"(max abs diff = {max_consistency_diff:.3e})."
+    )
+
 anna_out = anna_out.drop(columns=[
     "segment_key_strict",
     "segment_key_relaxed",
@@ -169,9 +184,12 @@ anna_out = anna_out.drop(columns=[
 print(f"slope_score: min={anna_out['slope_score'].min():.2f}  max={anna_out['slope_score'].max():.2f}")
 print(f"slope_norm:  min={anna_out['slope_norm'].min():.4f}  max={anna_out['slope_norm'].max():.4f}")
 print(f"score_walking_effort: min={anna_out['score_walking_effort'].min():.4f}  max={anna_out['score_walking_effort'].max():.4f}")
+print(f"score_walking_effort consistency vs 1 - slope_norm: max_abs_diff={max_consistency_diff:.3e}")
 print(f"Segments with slope > 0: {anna_out['slope_score'].gt(0).sum():,} / {len(anna_out):,}")
 
 print(f"\nSaving to {OUT_PATH} ...")
+if OUT_PATH.exists():
+    OUT_PATH.unlink()
 anna_out.to_file(OUT_PATH, driver="GPKG")
 print("Done.")
 print("\nFinal columns:", list(anna_out.columns))

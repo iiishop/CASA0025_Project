@@ -44,8 +44,8 @@ NOMINATIM_HEADERS = {
     "User-Agent": "CASA0025-Routing-Prototype"
 }
 
-# MCDM weights for slope_norm ∈ [0, 1]: how many times more important slope is vs length
-STEEPNESS_BETA_MAP = {1: 0.5, 2: 1.5, 3: 3.0}
+# Maps slider level (1–3) to MCDM weight; level 2 is the default balanced setting
+PREFERENCE_WEIGHT_MAP = {1: 0.2, 2: 1.0, 3: 4.0}
 
 ## functions
 def route_gdf_to_geojson(route_gdf):
@@ -57,19 +57,16 @@ def route_gdf_to_geojson(route_gdf):
 
 
 def format_stats(stats: dict):
-    """
-    Format routing stats into a frontend-friendly structure.
-    """
-    avg_slope_value = stats.get("average_slope_score", 0.0)
-
+    avg_walking_effort = round(stats.get("average_walking_effort", 0.0), 4)
     return {
         "length_m": round(stats["total_length_m"], 2),
-        "avg_slope_score": round(avg_slope_value, 2),
+        "avg_walking_effort": avg_walking_effort,
+        "avg_slope_score": avg_walking_effort,
         "road_length_m": round(stats["road_length_m"], 2),
         "footpath_length_m": round(stats["footpath_length_m"], 2),
         "footpath_share": round(stats["footpath_share"], 4),
         "edge_count": stats["edge_count"],
-        "node_count": stats["node_count"]
+        "node_count": stats["node_count"],
     }
 
 
@@ -96,12 +93,14 @@ def compute_routes(origin, destination, preferences=None):
     """
     preferences = preferences or {}
 
-    steepness_level = int(preferences.get("steepness", 2))
-    steepness_level = max(1, min(3, steepness_level))
-    steepness_factor = STEEPNESS_BETA_MAP[steepness_level]
-    crime_factor = float(preferences.get("crime", 0.0))
-    shade_factor = float(preferences.get("shade", 0.0))
-    street_activity_factor = float(preferences.get("street_activity", 0.0))
+    walk_level = int(preferences.get("walk", 2))
+    walk_level = max(1, min(3, walk_level))
+    walk_factor = PREFERENCE_WEIGHT_MAP[walk_level]
+    safety_factor = float(preferences.get("safety", 0.0))
+    activity_factor = float(preferences.get("activity", 0.0))
+    shade_shelter_factor = float(preferences.get("shade_shelter", 0.0))
+    air_factor = float(preferences.get("air", 0.0))
+    noise_factor = float(preferences.get("noise", 0.0))
 
     origin_lng = float(origin["lng"])
     origin_lat = float(origin["lat"])
@@ -128,10 +127,12 @@ def compute_routes(origin, destination, preferences=None):
     # which keeps the web app fast at runtime.
     preference_weight = build_preference_weight_function(
         length_factor=1.0,
-        steepness_factor=steepness_factor,
-        crime_factor=crime_factor,
-        shade_factor=shade_factor,
-        street_activity_factor=street_activity_factor,
+        walk_factor=walk_factor,
+        safety_factor=safety_factor,
+        activity_factor=activity_factor,
+        shade_shelter_factor=shade_shelter_factor,
+        air_factor=air_factor,
+        noise_factor=noise_factor,
     )
 
     easiest_nodes, easiest_route_gdf, easiest_stats = solve_route(
@@ -154,11 +155,15 @@ def compute_routes(origin, destination, preferences=None):
             "end_node": end_node
         },
         "preferences": {
-            "steepness": steepness_level,
-            "steepness_factor": steepness_factor,
-            "crime": crime_factor,
-            "shade": shade_factor,
-            "street_activity": street_activity_factor,
+            "walk": walk_level,
+            "walk_factor": walk_factor,
+            "safety": safety_factor,
+            "activity": activity_factor,
+            "shade_shelter": shade_shelter_factor,
+            "air": air_factor,
+            "noise": noise_factor,
+            "steepness": walk_level,
+            "steepness_factor": walk_factor,
         }
     }
 

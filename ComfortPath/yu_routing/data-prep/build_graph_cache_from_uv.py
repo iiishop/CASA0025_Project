@@ -1,13 +1,23 @@
 """
 Build the final cached NetworkX graph from the routing-ready network.
 
-Input:
+Inputs:
 - data/network_routing_input.gpkg
+- anna/260422_roads_export_with_env_slope.gpkg
 
 Main output:
 - data/main_graph.pkl
 
-This cached graph is what the Flask app loads directly at runtime.
+Derived penalties (higher = worse, used by Dijkstra & overlay)
+  safety_penalty         = 1 - score_feel_safe
+  activity_penalty        = 1 - score_things_see_do
+  walking_effort_penalty  = 1 - score_walking_effort
+  shade_shelter_penalty   = 1 - score_shade_shelter_final
+  air_penalty             = 1 - score_clean_air
+  noise_penalty           = 1 - score_not_too_noisy
+
+Routing primitives
+  length_m, length_norm
 """
 
 import pickle
@@ -22,28 +32,19 @@ from sklearn.preprocessing import MinMaxScaler
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 
-
 NETWORK_PATH = DATA_DIR / "network_routing_input.gpkg"
 NETWORK_LAYER = "network_routing_input"
 GRAPH_CACHE_PATH = DATA_DIR / "main_graph.pkl"
-ANNA_SCORES_PATH = BASE_DIR / "anna" / "260422_roads_export_final.gpkg"
+ANNA_SCORES_PATH = BASE_DIR / "anna" / "260422_roads_export_clean_canonical.gpkg"
 
 FOOTPATH_TYPES = {"footway", "path", "pedestrian", "steps"}
 FOOTPATH_PENALTY = 1.08
-SCORE_COLUMNS = [
-    "slope_score",
-    "crime_score",
-    "air_score",
-    "shade_score",
-    "wind_score",
-    "noise_score",
-    "street_activity_score",
-    "traffic_score",
-]
 
-# Maps raw input columns → normalised output column names
-NORM_MAP = {"length_m": "length_norm"}
-NORM_MAP.update({col: col.replace("_score", "_norm") for col in SCORE_COLUMNS})
+# Only length needs MinMaxScaler normalisation here.
+# walking_effort_penalty is derived directly as 1 - score_walking_effort.
+ROUTING_NORM_MAP = {
+    "length_m": "length_norm",
+}
 
 
 def classify_edge_type(fclass: str) -> str:
@@ -57,7 +58,6 @@ gdf = gpd.read_file(NETWORK_PATH, layer=NETWORK_LAYER)
 
 if gdf.crs is None:
     raise ValueError("Routing input file has no CRS.")
-
 if gdf.crs.to_epsg() != 27700:
     print("Reprojecting to EPSG:27700...")
     gdf = gdf.to_crs(27700)
@@ -77,67 +77,191 @@ gdf = gdf[gdf["u"].notna() & gdf["v"].notna() & gdf["length_m"].notna()].copy()
 gdf["u"] = gdf["u"].astype("int64")
 gdf["v"] = gdf["v"].astype("int64")
 
-for score_col in SCORE_COLUMNS:
-    if score_col not in gdf.columns:
-        gdf[score_col] = 0.0
-    gdf[score_col] = pd.to_numeric(gdf[score_col], errors="coerce").fillna(0.0)
-
-# Inject Anna's composite scores (row-aligned: same base file, same order)
+if "slope_score" not in gdf.columns:
+    gdf["slope_score"] = 0.0
+gdf["slope_score"] = pd.to_numeric(gdf["slope_score"], errors="coerce").fillna(0.0)
+# Compatibility-only slope normalisation fallback.
+# Compatibility-only slope normalisation fallback.
+# This preserves the previous routing behaviour if the canonical raw field is absent.
+slope_scaler = MinMaxScaler()
+gdf["_walking_effort_penalty_from_slope"] = slope_scaler.fit_transform(gdf[["slope_score"]])
+# Inject Anna's canonical scores and derive penalties
+# Inject Anna's canonical scores and derive penalties
 if ANNA_SCORES_PATH.exists():
-    print("Loading Anna's composite scores...")
-    anna = gpd.read_file(ANNA_SCORES_PATH)[["score_feel_safe", "score_shade_shelter", "score_things_see_do"]]
-    assert len(anna) == len(gdf), f"Row count mismatch: Anna {len(anna)} vs routing input {len(gdf)}"
-    # crime: high = dangerous → use directly as penalty
-    gdf["crime_score"] = anna["score_feel_safe"].values
-    # shade: high = good shade → invert so high norm = exposed = penalised
-    gdf["shade_score"] = 1.0 - anna["score_shade_shelter"].values
-    # street_activity: high = interesting → invert so high norm = boring = penalised
-    gdf["street_activity_score"] = 1.0 - anna["score_things_see_do"].values
-    print("Anna scores injected: crime_score, shade_score, street_activity_score")
-else:
-    print(f"Warning: Anna scores not found at {ANNA_SCORES_PATH}, using placeholder zeros.")
+    print("Loading Anna's canonical scores...")
+    anna = gpd.read_file(ANNA_SCORES_PATH)
+    assert len(anna) == len(gdf), (
+        f"Row count mismatch: Anna {len(anna)} vs routing input {len(gdf)}"
+    )
+    missing_anna_cols = [
+        col for col in [
+            "score_feel_safe",
+            "score_things_see_do",
+        ]
+        if col not in anna.columns
+    ]
+    if missing_anna_cols:
+        raise ValueError(f"Anna scores file is missing required columns: {missing_anna_cols}")
 
+    def _load_canonical_score(
+        col_preferred: str,
+        fallback_cols: list[str],
+        default_value: float,
+        fail_if_missing: bool = False,
+    ) -> pd.Series:
+        source_col = None
+        if col_preferred in anna.columns:
+            source_col = col_preferred
+        else:
+            for fb_col in fallback_cols:
+                if fb_col in anna.columns:
+                    source_col = fb_col
+                    print(
+                        f"Warning: Anna lacks canonical {col_preferred}. "
+                        f"Using fallback column {fb_col} for this build."
+                    )
+                    break
+
+        if source_col is None:
+            if fail_if_missing:
+                print(
+                    f"Warning: Anna lacks required canonical field {col_preferred}. "
+                    "Cannot continue without this field."
+                )
+                raise ValueError(
+                    f"Anna scores file missing required canonical column: {col_preferred}"
+                )
+            print(
+                f"Warning: Anna lacks {col_preferred} (and fallbacks {fallback_cols}). "
+                f"Using neutral default {default_value:.2f}."
+            )
+            return pd.Series(default_value, index=anna.index, dtype=float)
+
+        s = pd.to_numeric(anna[source_col], errors="coerce")
+        missing_n = int(s.isna().sum())
+        if missing_n > 0:
+            print(
+                f"Warning: {source_col} has {missing_n:,} null rows; "
+                f"filling nulls with neutral default {default_value:.2f}."
+            )
+            s = s.fillna(default_value)
+        return s.clip(0.0, 1.0)
+
+    if "score_walking_effort" in anna.columns:
+        anna_walking = pd.to_numeric(anna["score_walking_effort"], errors="coerce")
+        missing_walk = int(anna_walking.isna().sum())
+        if missing_walk > 0:
+            print(
+                f"Warning: Anna score_walking_effort has {missing_walk:,} null rows; "
+                "falling back to slope-derived compatibility values for those rows."
+            )
+            anna_walking = anna_walking.fillna(1.0 - gdf["_walking_effort_penalty_from_slope"])
+        gdf["score_walking_effort"] = anna_walking.clip(0.0, 1.0).values
+        print("Anna score injected: score_walking_effort")
+    else:
+        print(
+            "Warning: Anna scores file lacks score_walking_effort. "
+            "Using slope-derived compatibility values to preserve routing behaviour."
+        )
+        gdf["score_walking_effort"] = (1.0 - gdf["_walking_effort_penalty_from_slope"]).clip(0.0, 1.0)
+        print("Walking effort raw score synthesised from slope_score compatibility path")
+
+    # Raw scores stored as-is for overlay reference (higher = better)
+    gdf["score_feel_safe"] = pd.to_numeric(anna["score_feel_safe"], errors="coerce").fillna(0.5).clip(0.0, 1.0).values
+    gdf["score_things_see_do"] = pd.to_numeric(anna["score_things_see_do"], errors="coerce").fillna(0.5).clip(0.0, 1.0).values
+    gdf["score_shade_shelter_final"] = _load_canonical_score(
+        "score_shade_shelter_final",
+        fallback_cols=[],
+        default_value=0.5,
+        fail_if_missing=True,
+    ).values
+
+    gdf["score_clean_air"] = _load_canonical_score(
+        "score_clean_air",
+        fallback_cols=[],
+        default_value=0.5,
+    ).values
+    gdf["score_not_too_noisy"] = _load_canonical_score(
+        "score_not_too_noisy",
+        fallback_cols=[],
+        default_value=0.5,
+    ).values
+
+    # Penalties for Dijkstra cost and overlay colouring (higher = worse)
+    gdf["safety_penalty"] = 1.0 - gdf["score_feel_safe"]
+    gdf["activity_penalty"] = 1.0 - gdf["score_things_see_do"]
+    gdf["walking_effort_penalty"] = 1.0 - gdf["score_walking_effort"]
+    gdf["shade_shelter_penalty"] = 1.0 - gdf["score_shade_shelter_final"]
+    gdf["air_penalty"] = 1.0 - gdf["score_clean_air"]
+    gdf["noise_penalty"] = 1.0 - gdf["score_not_too_noisy"]
+
+    print(
+        "Anna scores injected: score_feel_safe, score_things_see_do, "
+        "score_walking_effort, score_shade_shelter_final, "
+        "score_clean_air, score_not_too_noisy"
+    )
+    print(
+        "Penalties derived:    safety_penalty, activity_penalty, "
+        "walking_effort_penalty, shade_shelter_penalty, air_penalty, noise_penalty"
+    )
+else:
+    print(f"Warning: Anna scores not found at {ANNA_SCORES_PATH}. Using neutral placeholders.")
+    for col in (
+        "score_feel_safe",
+        "score_things_see_do",
+        "score_walking_effort",
+        "score_shade_shelter_final",
+        "score_clean_air",
+        "score_not_too_noisy",
+    ):
+        gdf[col] = 0.5
+    for col in (
+        "safety_penalty",
+        "activity_penalty",
+        "walking_effort_penalty",
+        "shade_shelter_penalty",
+        "air_penalty",
+        "noise_penalty",
+    ):
+        gdf[col] = 0.5
+
+# normalise length and slope
 scaler = MinMaxScaler()
-in_cols = list(NORM_MAP.keys())
-out_cols = list(NORM_MAP.values())
+in_cols = list(ROUTING_NORM_MAP.keys())
+out_cols = list(ROUTING_NORM_MAP.values())
 gdf[out_cols] = scaler.fit_transform(gdf[in_cols])
+gdf = gdf.drop(columns=["_walking_effort_penalty_from_slope"])
 
 if "fclass" not in gdf.columns:
     gdf["fclass"] = pd.NA
-
 gdf["edge_type"] = gdf["fclass"].apply(classify_edge_type)
 
-# Build a graph using the existing OSM u/v node ids
-# Each row becomes one edge with length and pre-attached continuous score columns
 print(f"Input edges: {len(gdf):,}")
-print("Canonical score columns:", SCORE_COLUMNS)
-print(gdf[SCORE_COLUMNS].describe())
-print("Normalized routing columns:", ["length_norm"] + [col.replace("_score", "_norm") for col in SCORE_COLUMNS])
+print(gdf[["slope_score", "score_walking_effort", "walking_effort_penalty", "safety_penalty",
+           "activity_penalty", "shade_shelter_penalty", "air_penalty", "noise_penalty", "length_norm"]].describe())
 
+#Build graph
 G = nx.Graph()
 
 for _, row in gdf.iterrows():
     u = int(row["u"])
     v = int(row["v"])
-    length_m = float(row["length_m"])
-    length_norm = float(row["length_norm"])
-    slope_score = float(row["slope_score"])
-    crime_score = float(row["crime_score"])
-    air_score = float(row["air_score"])
-    shade_score = float(row["shade_score"])
-    wind_score = float(row["wind_score"])
-    noise_score = float(row["noise_score"])
-    street_activity_score = float(row["street_activity_score"])
-    traffic_score = float(row["traffic_score"])
-    slope_norm = float(row["slope_norm"])
-    crime_norm = float(row["crime_norm"])
-    air_norm = float(row["air_norm"])
-    shade_norm = float(row["shade_norm"])
-    wind_norm = float(row["wind_norm"])
-    noise_norm = float(row["noise_norm"])
-    street_activity_norm = float(row["street_activity_norm"])
-    traffic_norm = float(row["traffic_norm"])
-    edge_type = row["edge_type"]
+    length_m              = float(row["length_m"])
+    length_norm           = float(row["length_norm"])
+    slope_score           = float(row["slope_score"])
+    score_walking_effort  = float(row["score_walking_effort"])
+    walking_effort_penalty = float(row["walking_effort_penalty"])
+    safety_penalty        = float(row["safety_penalty"])
+    activity_penalty      = float(row["activity_penalty"])
+    shade_shelter_penalty = float(row["shade_shelter_penalty"])
+    air_penalty           = float(row["air_penalty"])
+    noise_penalty         = float(row["noise_penalty"])
+    score_feel_safe       = float(row["score_feel_safe"])
+    score_things_see_do   = float(row["score_things_see_do"])
+    score_shade_shelter_final = float(row["score_shade_shelter_final"])
+    score_clean_air       = float(row["score_clean_air"])
+    score_not_too_noisy   = float(row["score_not_too_noisy"])
+    edge_type             = row["edge_type"]
 
     type_factor = FOOTPATH_PENALTY if edge_type == "footpath" else 1.0
 
@@ -147,34 +271,23 @@ for _, row in gdf.iterrows():
         "length_m": length_m,
         "length_norm": length_norm,
         "slope_score": slope_score,
-        "crime_score": crime_score,
-        "air_score": air_score,
-        "shade_score": shade_score,
-        "wind_score": wind_score,
-        "noise_score": noise_score,
-        "street_activity_score": street_activity_score,
-        "traffic_score": traffic_score,
-        "slope_norm": slope_norm,
-        "crime_norm": crime_norm,
-        "air_norm": air_norm,
-        "shade_norm": shade_norm,
-        "wind_norm": wind_norm,
-        "noise_norm": noise_norm,
-        "street_activity_norm": street_activity_norm,
-        "traffic_norm": traffic_norm,
+        "score_walking_effort": score_walking_effort,
+        "walking_effort_penalty": walking_effort_penalty,
+        "safety_penalty": safety_penalty,
+        "activity_penalty": activity_penalty,
+        "shade_shelter_penalty": shade_shelter_penalty,
+        "air_penalty": air_penalty,
+        "noise_penalty": noise_penalty,
+        "score_feel_safe": score_feel_safe,
+        "score_things_see_do": score_things_see_do,
+        "score_shade_shelter_final": score_shade_shelter_final,
+        "score_clean_air": score_clean_air,
+        "score_not_too_noisy": score_not_too_noisy,
         "edge_type": edge_type,
         "display_type": edge_type,
         "type_factor": type_factor,
-        "slope_component": slope_norm,
-        "crime_component": crime_norm,
-        "air_component": air_norm,
-        "shade_component": shade_norm,
-        "wind_component": wind_norm,
-        "noise_component": noise_norm,
-        "street_activity_component": street_activity_norm,
-        "traffic_component": traffic_norm,
         "cost_shortest": length_m,
-        "cost_easiest": length_norm + slope_norm
+        "cost_easiest": length_norm + walking_effort_penalty,
     })
 
     if G.has_edge(u, v):
@@ -186,11 +299,9 @@ for _, row in gdf.iterrows():
 print(f"Full graph built: {G.number_of_nodes():,} nodes, {G.number_of_edges():,} edges")
 
 components = sorted(nx.connected_components(G), key=len, reverse=True)
-
 if not components:
     raise ValueError("Graph is empty.")
 
-# Keep only the largest connected component so routing stays stable
 largest_cc = components[0]
 G_main = G.subgraph(largest_cc).copy()
 
