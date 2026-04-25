@@ -39,6 +39,13 @@
     "href": "index.html#how-it-works",
     "title": "Comfort Path: Explore walkable streets across London",
     "section": "How it Works",
-    "text": "How it Works\nUse this section to explain how your application works using code blocks and text explanations (no more than 500 words excluding code):\nMap.setCenter(35.51898, 33.90153, 15);\n\nMap.setOptions(\"satellite\");\n\nvar aoi = ee.Geometry.Point(35.51898, 33.90153).buffer(3000);"
+    "text": "How it Works\n\nEveryone feels welcome\n\n\nThings to see and do & feeling safe\n\n\nClean air & noise\n\n// Run zonal stats for one batch\nfunction computeBatchStats(roadsBatch) {\n  var bufferedBatch = bufferRoads(roadsBatch);\n\n  return stacked.reduceRegions({\n    collection: bufferedBatch,\n    reducer: ee.Reducer.mean(),\n    scale: 1,\n    crs: 'EPSG:3857',\n    tileScale: 8\n  });\n}\n\n\n\nShade and shelter\nUse Map.setCenter() to move the map.\n\n\n\n\n\nNetwork graph and routing"
+  },
+  {
+    "objectID": "index.html#references",
+    "href": "index.html#references",
+    "title": "Comfort Path: Explore walkable streets across London",
+    "section": "References",
+    "text": "References"
   }
 ]
