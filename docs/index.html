@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Comfort Path: an Interactive Walking Route Finder</title>
+<title>Comfort Path: Explore walkable streets across London</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -67,7 +67,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-search/fuse.min.js"></script>
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
-<link href="./points_module/assets/flavicon.png" rel="icon" type="image/png">
+<link href="./images/flavicon.png" rel="icon" type="image/png">
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
@@ -116,7 +116,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <style>
 
       .quarto-title-block .quarto-title-banner {
-        background-image: url(points_module/assets/Sequence01_4-ezgif.com-optimize.gif);
+        background-image: url(images/Sequence01_4-ezgif.com-optimize.gif);
 background-size: cover;
       }
 </style>
@@ -295,7 +295,7 @@ background-size: cover;
 <header id="title-block-header" class="quarto-title-block default page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
-      <h1 class="title">Comfort Path: an Interactive Walking Route Finder</h1>
+      <h1 class="title">Comfort Path: Explore walkable streets across London</h1>
                       </div>
   </div>
     
@@ -343,109 +343,62 @@ background-size: cover;
 <p>To support this, we break walkability down into a set of pre-computed parameters for each street segment. Users can then assign their own weights to these parameters based on what matters most to them. These user-defined weights are incorporated into a modified cost function within Dijkstra’s algorithm, enabling the system to compute the most suitable route according to each individual’s preferences.</p>
 <section id="problem-statement" class="level3">
 <h3 class="anchored" data-anchor-id="problem-statement">Problem Statement</h3>
-<p>Existing studies have explored walkability and route attractiveness, with tools like the <a href="https://www.healthystreets.com/maps/london">Healthy Streets Index</a> presenting results through graduated colour maps. However, these approaches rely on fixed indicator weights, limiting their ability to reflect individual user preferences and personal definitions of walkability.</p>
+<p>There are a number of parameters influencing walking comfort; these are widely discussed in literature (Labdaoui et al., 2021; Bartzokas-Tsiompras, Bakogiannis and Nikitas, 2023; Stutz et al., 2025), and some were integrated into the pedestrian routing applications. For example, <a href="https://shade-route.vercel.app/">ShadeRoute</a>, <a href="https://heal.openrouteservice.org/#/place/@8.685808181762697,49.41442144045737,15">Heal</a>, and <a href="https://green-paths.web.app/">Green Paths</a>, integrate % shade, weather, greenness, air quality and noise data indicators into the route-finding cost function.</p>
+<p>The products on the market rarely reflect the multifaceted nature of walkability as a concept, focussing on a few selected indicators. Comprehensive tools like <a href="https://www.healthystreets.com/maps/london">Healthy Streets Index</a> rely on fixed indicator weights and lack interactivity, which limits their ability to reflect individual preferences and definitions of walkability; our application addresses the issues above through a fully interactive London-based route-building prototype.</p>
 </section>
 <section id="end-user" class="level3">
 <h3 class="anchored" data-anchor-id="end-user">End User</h3>
 <p>We identified two main end user groups:</p>
 <ul>
-<li><p><strong>Policy makers and built environment professionals</strong> require not only robust, evidence-based data to inform policies and interventions, but also the ability to adjust how walkability is defined, for example, in response to outputs from community engagement.</p></li>
-<li><p><strong>The wider public</strong> require tools that help identify optimal walking routes. The application’s origin-destination module serves as a proof of concept, demonstrating how diverse walkability criteria can be integrated into everyday route planning tools.</p></li>
+<li><p><strong>Policy makers and built environment professionals</strong> require not only robust, evidence-based data to inform policies and interventions, but also the ability to adjust how walkability is defined, e.g.&nbsp;in response to outputs from community engagement. They also need to observe broader patterns, so street scores are displayed as an interactive overlay that updates as users toggle parameters.</p></li>
+<li><p><strong>The wider public</strong> benefits from tools that help identify optimal walking routes. By toggling parameters, users can tailor the route to their immediate needs. The application’s origin-destination module serves as a proof-of-concept, demonstrating how walkability criteria can be integrated into everyday route-planning tools.</p></li>
 </ul>
 </section>
 <section id="data" class="level3">
 <h3 class="anchored" data-anchor-id="data">Data</h3>
 <p>We organised the data by walkability criteria that were used in calculations. For comparability, the criteria are matching those of <a href="https://www.healthystreets.com/maps/london">Healthy Streets Index</a>.</p>
-<div id="quarto-accordion-acc-c841f0b2" class="accordion quarto-accordion">
+<div id="quarto-accordion-acc-866d4b2a" class="accordion quarto-accordion">
 <div class="accordion-item">
-<div class="accordion-header" id="heading-quarto-accordion-acc-c841f0b2-lswelcomelswelcome-1">
-<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-c841f0b2-lswelcomelswelcome-1" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-c841f0b2-lswelcomelswelcome-1">
+<div class="accordion-header" id="heading-quarto-accordion-acc-866d4b2a-lswelcomed6e97a517-1">
+<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-866d4b2a-lswelcomed6e97a517-1" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-866d4b2a-lswelcomed6e97a517-1">
 <div class="accordion-header-content">
 Everyone feels welcome
 </div>
 </button>
 </div>
-<div id="collapse-quarto-accordion-acc-c841f0b2-lswelcomelswelcome-1" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-c841f0b2-lswelcomelswelcome-1" data-bs-parent="#quarto-accordion-acc-c841f0b2">
+<div id="collapse-quarto-accordion-acc-866d4b2a-lswelcomed6e97a517-1" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-866d4b2a-lswelcomed6e97a517-1" data-bs-parent="#quarto-accordion-acc-866d4b2a">
 <div class="accordion-body">
 <div class="accordion-body-content">
-Everyone feels welcome
+<strong>Slope steepness</strong> as a proxy for the ease of walking for various groups, calculated from England 1m Composite DTM. Environment Agency copyright and/or database right 2022. All rights reserved. <a href="https://environment.data.gov.uk/dataset/562c9d56-7c2d-4d42-83bb-578d6e97a517">Source</a>
 </div>
 </div>
 </div>
 </div>
 <div class="accordion-item">
-<div class="accordion-header" id="heading-quarto-accordion-acc-c841f0b2-ndshelterndshelter-2">
-<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-c841f0b2-ndshelterndshelter-2" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-c841f0b2-ndshelterndshelter-2">
-<div class="accordion-header-content">
-Shade and shelter
-</div>
-</button>
-</div>
-<div id="collapse-quarto-accordion-acc-c841f0b2-ndshelterndshelter-2" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-c841f0b2-ndshelterndshelter-2" data-bs-parent="#quarto-accordion-acc-c841f0b2">
-<div class="accordion-body">
-<div class="accordion-body-content">
-Shade and shelter
-</div>
-</div>
-</div>
-</div>
-<div class="accordion-item">
-<div class="accordion-header" id="heading-quarto-accordion-acc-c841f0b2-pandrestpandrest-3">
-<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-c841f0b2-pandrestpandrest-3" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-c841f0b2-pandrestpandrest-3">
-<div class="accordion-header-content">
-Places to stop and rest
-</div>
-</button>
-</div>
-<div id="collapse-quarto-accordion-acc-c841f0b2-pandrestpandrest-3" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-c841f0b2-pandrestpandrest-3" data-bs-parent="#quarto-accordion-acc-c841f0b2">
-<div class="accordion-body">
-<div class="accordion-body-content">
-Places to stop and rest
-</div>
-</div>
-</div>
-</div>
-<div class="accordion-item">
-<div class="accordion-header" id="heading-quarto-accordion-acc-c841f0b2-toonoisysource-4">
-<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-c841f0b2-toonoisysource-4" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-c841f0b2-toonoisysource-4">
+<div class="accordion-header" id="heading-quarto-accordion-acc-866d4b2a-toonoisyd6e97a517-2">
+<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-866d4b2a-toonoisyd6e97a517-2" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-866d4b2a-toonoisyd6e97a517-2">
 <div class="accordion-header-content">
 Not too noisy
 </div>
 </button>
 </div>
-<div id="collapse-quarto-accordion-acc-c841f0b2-toonoisysource-4" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-c841f0b2-toonoisysource-4" data-bs-parent="#quarto-accordion-acc-c841f0b2">
+<div id="collapse-quarto-accordion-acc-866d4b2a-toonoisyd6e97a517-2" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-866d4b2a-toonoisyd6e97a517-2" data-bs-parent="#quarto-accordion-acc-866d4b2a">
 <div class="accordion-body">
 <div class="accordion-body-content">
-<strong>Road noise exposure</strong> as a proxy for acoustic comfort © Crown copyright, Open Government Licence v3.0. <a href="">Source</a>
+<strong>Road noise exposure</strong> as a proxy for acoustic comfort © Crown copyright, Open Government Licence v3.0. <a href="https://environment.data.gov.uk/dataset/562c9d56-7c2d-4d42-83bb-578d6e97a517">Source</a>
 </div>
 </div>
 </div>
 </div>
 <div class="accordion-item">
-<div class="accordion-header" id="heading-quarto-accordion-acc-c841f0b2-andcycleandcycle-5">
-<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-c841f0b2-andcycleandcycle-5" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-c841f0b2-andcycleandcycle-5">
-<div class="accordion-header-content">
-People choose to walk and cycle
-</div>
-</button>
-</div>
-<div id="collapse-quarto-accordion-acc-c841f0b2-andcycleandcycle-5" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-c841f0b2-andcycleandcycle-5" data-bs-parent="#quarto-accordion-acc-c841f0b2">
-<div class="accordion-body">
-<div class="accordion-body-content">
-People choose to walk and cycle
-</div>
-</div>
-</div>
-</div>
-<div class="accordion-item">
-<div class="accordion-header" id="heading-quarto-accordion-acc-c841f0b2-feelsafepagepage-6">
-<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-c841f0b2-feelsafepagepage-6" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-c841f0b2-feelsafepagepage-6">
+<div class="accordion-header" id="heading-quarto-accordion-acc-866d4b2a-feelsafepagepage-3">
+<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-866d4b2a-feelsafepagepage-3" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-866d4b2a-feelsafepagepage-3">
 <div class="accordion-header-content">
 People feel safe
 </div>
 </button>
 </div>
-<div id="collapse-quarto-accordion-acc-c841f0b2-feelsafepagepage-6" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-c841f0b2-feelsafepagepage-6" data-bs-parent="#quarto-accordion-acc-c841f0b2">
+<div id="collapse-quarto-accordion-acc-866d4b2a-feelsafepagepage-3" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-866d4b2a-feelsafepagepage-3" data-bs-parent="#quarto-accordion-acc-866d4b2a">
 <div class="accordion-body">
 <div class="accordion-body-content">
 <strong>Safety from crime</strong> represented with reported crime counts. Sourced using the Police API. Street-level crimes in the past year (2025) were added. UK Home Office via data.police.uk, OGL v3.0. <a href="https://data.police.uk/docs/">Source</a> <br> <strong>Safety from traffic</strong> represented with counts of pedestrian collisions occurred 2023-26 (all injury levels). Several years ensure sufficient density of points. © TfL <a href="https://experience.arcgis.com/experience/f817ed4d14b7434584959384d560f1fc/page/Page">Source</a>
@@ -454,14 +407,14 @@ People feel safe
 </div>
 </div>
 <div class="accordion-item">
-<div class="accordion-header" id="heading-quarto-accordion-acc-c841f0b2-seeanddosexplore-7">
-<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-c841f0b2-seeanddosexplore-7" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-c841f0b2-seeanddosexplore-7">
+<div class="accordion-header" id="heading-quarto-accordion-acc-866d4b2a-seeanddosexplore-4">
+<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-866d4b2a-seeanddosexplore-4" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-866d4b2a-seeanddosexplore-4">
 <div class="accordion-header-content">
 Things to see and do
 </div>
 </button>
 </div>
-<div id="collapse-quarto-accordion-acc-c841f0b2-seeanddosexplore-7" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-c841f0b2-seeanddosexplore-7" data-bs-parent="#quarto-accordion-acc-c841f0b2">
+<div id="collapse-quarto-accordion-acc-866d4b2a-seeanddosexplore-4" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-866d4b2a-seeanddosexplore-4" data-bs-parent="#quarto-accordion-acc-866d4b2a">
 <div class="accordion-body">
 <div class="accordion-body-content">
 <strong>Street activity</strong> represented by points of interest such as shops and services. The data for this research have been provided by the Geographic Data Service (GeoDS), a Smart Data Research UK Investment: ES/Z504464/1. <a href="https://data.geods.ac.uk/dataset/point-of-interest-data-for-the-united-kingdom">Source</a> <br> <strong>Richness of historic environment</strong> represented with listed buildings as points. © Crown Copyright 2026. Contains Ordnance Survey data © Crown copyright and database right 2026. Released under OGL. <a href="https://opendata-historicengland.hub.arcgis.com/datasets/historicengland::listed-building-points/explore">Source</a>
@@ -470,30 +423,14 @@ Things to see and do
 </div>
 </div>
 <div class="accordion-item">
-<div class="accordion-header" id="heading-quarto-accordion-acc-c841f0b2-elrelaxedarmonized-8">
-<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-c841f0b2-elrelaxedarmonized-8" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-c841f0b2-elrelaxedarmonized-8">
-<div class="accordion-header-content">
-People feel relaxed
-</div>
-</button>
-</div>
-<div id="collapse-quarto-accordion-acc-c841f0b2-elrelaxedarmonized-8" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-c841f0b2-elrelaxedarmonized-8" data-bs-parent="#quarto-accordion-acc-c841f0b2">
-<div class="accordion-body">
-<div class="accordion-body-content">
-<strong>Green space exposure</strong>, represented with vegetation cover (NDVI) derived from Sentinel-2 COPERNICUS/S2_SR_HARMONIZED GEE layer. Contains modified Copernicus Sentinel data (2023), processed via Google Earth Engine. <a href="https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR_HARMONIZED">Source</a>
-</div>
-</div>
-</div>
-</div>
-<div class="accordion-item">
-<div class="accordion-header" id="heading-quarto-accordion-acc-c841f0b2-cleanair222lg5g-9">
-<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-c841f0b2-cleanair222lg5g-9" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-c841f0b2-cleanair222lg5g-9">
+<div class="accordion-header" id="heading-quarto-accordion-acc-866d4b2a-cleanair222lg5g-5">
+<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-866d4b2a-cleanair222lg5g-5" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-866d4b2a-cleanair222lg5g-5">
 <div class="accordion-header-content">
 Clean air
 </div>
 </button>
 </div>
-<div id="collapse-quarto-accordion-acc-c841f0b2-cleanair222lg5g-9" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-c841f0b2-cleanair222lg5g-9" data-bs-parent="#quarto-accordion-acc-c841f0b2">
+<div id="collapse-quarto-accordion-acc-866d4b2a-cleanair222lg5g-5" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-866d4b2a-cleanair222lg5g-5" data-bs-parent="#quarto-accordion-acc-866d4b2a">
 <div class="accordion-body">
 <div class="accordion-body-content">
 <strong>Atmospheric emissions</strong>, representing street-level air pollution – NO2, PM2.5, PM10. Greater London Authority (GLA), London Datastore. <a href="https://data.london.gov.uk/dataset/london-atmospheric-emissions-inventory-laei-2022-2lg5g/">Source</a>
@@ -502,17 +439,33 @@ Clean air
 </div>
 </div>
 <div class="accordion-item">
-<div class="accordion-header" id="heading-quarto-accordion-acc-c841f0b2-rtingdatartingdata-10">
-<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-c841f0b2-rtingdatartingdata-10" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-c841f0b2-rtingdatartingdata-10">
+<div class="accordion-header" id="heading-quarto-accordion-acc-866d4b2a-ndshelterrain2022-6">
+<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-866d4b2a-ndshelterrain2022-6" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-866d4b2a-ndshelterrain2022-6">
+<div class="accordion-header-content">
+Shade and shelter
+</div>
+</button>
+</div>
+<div id="collapse-quarto-accordion-acc-866d4b2a-ndshelterrain2022-6" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-866d4b2a-ndshelterrain2022-6" data-bs-parent="#quarto-accordion-acc-866d4b2a">
+<div class="accordion-body">
+<div class="accordion-body-content">
+<strong>Green space exposure</strong>, represented by vegetation cover (NDVI) derived from Sentinel-2 COPERNICUS S2_SR_HARMONIZED GEE layer. Contains modified Copernicus Sentinel data (2023), processed via Google Earth Engine. <a href="https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR_HARMONIZED">Source</a> <br> <strong>Availability of shade</strong>, represented by mean % of street covered by shade calculated from England 1m Composite DSM and Sentinel2. Environment Agency copyright and/or database right 2022. All rights reserved. <a href="https://environment.data.gov.uk/dataset/562c9d56-7c2d-4d42-83bb-578d6e97a517">Source</a>. Contains modified Copernicus Sentinel data (2023), processed via Google Earth Engine. <a href="https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR_HARMONIZED">Source</a>. Environment Agency copyright and/or database right 2022. All rights reserved. <a href="https://developers.google.com/earth-engine/datasets/catalog/UK_EA_ENGLAND_1M_TERRAIN_2022">Source</a> <br> <strong>Protection from wind</strong>, represented by a combination of mean wind speed (m/s) at 10m and presence of barriers. Global Wind Atlas 3.0, a free, web-based application developed, owned and operated by the Technical University of Denmark (DTU). The Global Wind Atlas 3.0 is released in partnership with the World Bank Group, utilizing data provided by Vortex, using funding provided by the Energy Sector Management Assistance Program (ESMAP). For additional information: https://globalwindatlas.info. <a href="https://globalwindatlas.info/en/">Source</a>. Environment Agency copyright and/or database right 2022. All rights reserved. <a href="https://developers.google.com/earth-engine/datasets/catalog/UK_EA_ENGLAND_1M_TERRAIN_2022">Source</a>
+</div>
+</div>
+</div>
+</div>
+<div class="accordion-item">
+<div class="accordion-header" id="heading-quarto-accordion-acc-866d4b2a-rtingdataright2026-7">
+<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-866d4b2a-rtingdataright2026-7" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-866d4b2a-rtingdataright2026-7">
 <div class="accordion-header-content">
 Supporting data
 </div>
 </button>
 </div>
-<div id="collapse-quarto-accordion-acc-c841f0b2-rtingdatartingdata-10" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-c841f0b2-rtingdatartingdata-10" data-bs-parent="#quarto-accordion-acc-c841f0b2">
+<div id="collapse-quarto-accordion-acc-866d4b2a-rtingdataright2026-7" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-866d4b2a-rtingdataright2026-7" data-bs-parent="#quarto-accordion-acc-866d4b2a">
 <div class="accordion-body">
 <div class="accordion-body-content">
-Supporting data
+<strong>Streets and pedestrian paths</strong> acquired from OSM through Geofabrik. ©OpenStreetMap contributors <br> <strong>Boundaries of London</strong> from <a href="https://data.london.gov.uk/dataset/statistical-gis-boundary-files-for-london-20od9/">London Datastore</a>. © Copyright 2026
 </div>
 </div>
 </div>
@@ -521,23 +474,22 @@ Supporting data
 </section>
 <section id="methodology" class="level3">
 <h3 class="anchored" data-anchor-id="methodology">Methodology</h3>
+<p>To structure our analysis for London, we adopted the Healthy Streets’ framework, as it is endorsed by the Mayor of London and TfL. We picked quantifiable indicators (as opposed to survey and observation-based), and represented them with composite scores built with raster and point datasets.</p>
 <div class="quarto-figure quarto-figure-left">
 <figure class="figure">
 <div class="quarto-figure quarto-figure-left">
 <figure class="figure">
-<p><a href="points_module/assets/Healthy+Streets+Indicators+Diagram_NEW.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Healthy Streets Index indicators"><img src="points_module/assets/Healthy+Streets+Indicators+Diagram_NEW.png" class="img-fluid quarto-figure quarto-figure-left figure-img" style="width:50.0%" alt="Healthy Streets Index indicators"></a></p>
+<p><a href="images/Healthy+Streets+Indicators+Diagram_NEW.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Healthy Streets Index indicators"><img src="images/Healthy+Streets+Indicators+Diagram_NEW.png" class="img-fluid quarto-figure quarto-figure-left figure-img" style="width:50.0%" alt="Healthy Streets Index indicators"></a></p>
 </figure>
 </div>
 <figcaption>Healthy Streets Index indicators</figcaption>
 </figure>
 </div>
-<p>Street segments</p>
-<p>Raster data</p>
-<p>Point data</p>
+<p>We applied the scores on a graph of walkable networks, which allowed continuous path search across the study area. Using these scores, the personalised routing cost is defined as a weighted, normalised, and additive cost function:</p>
 </section>
 <section id="interface" class="level3">
 <h3 class="anchored" data-anchor-id="interface">Interface</h3>
-<p>How does your application’s interface work to address the needs of your end user?</p>
+<p>On load the map is showing the default walkability scores plotted. The panel on the left features sliders that allow the user to select their individual preferences; origin-destination block is below. After the preferences and the locations are set, the application is showing two routes: shortest and preferred. As the preferences change, the routes and the general walkability map are changed interactively.</p>
 </section>
 </section>
 <section id="the-application" class="level2 page-columns page-full">

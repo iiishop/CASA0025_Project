@@ -16,9 +16,6 @@ book:
   sidebar:
     logo: casa_logo.png
 
-
-
-
 format:
   html:
     theme:
@@ -35,7 +32,7 @@ format:
       smooth_scroll: true
 
 website:
-  favicon: points_module/assets/flavicon.png
+  favicon: images/flavicon.png
   page-navigation: true
   site-url: "https://maheer-maps.github.io/CASA25_Rasternauts/"
   repo-url: "https://github.com/iiishop/CASA0025_Project"

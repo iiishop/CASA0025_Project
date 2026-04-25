@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://maheer-maps.github.io/CASA25_Rasternauts/index.html</loc>
-    <lastmod>2026-04-19T11:20:59.239Z</lastmod>
+    <loc>https://maheer-maps.github.io/CASA25_Rasternauts/readme.html</loc>
+    <lastmod>2026-04-13T13:41:13.676Z</lastmod>
   </url>
   <url>
-    <loc>https://maheer-maps.github.io/CASA25_Rasternauts/points_module/road_sections_synthesis.html</loc>
-    <lastmod>2026-04-21T23:19:59.897Z</lastmod>
+    <loc>https://maheer-maps.github.io/CASA25_Rasternauts/composite_indicators_module/road_sections_synthesis.html</loc>
+    <lastmod>2026-04-22T22:09:00.012Z</lastmod>
+  </url>
+  <url>
+    <loc>https://maheer-maps.github.io/CASA25_Rasternauts/index.html</loc>
+    <lastmod>2026-04-25T00:32:57.378Z</lastmod>
   </url>
 </urlset>
