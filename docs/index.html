@@ -121,6 +121,35 @@ background-size: cover;
       }
 </style>
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.0/dist/litera/bootstrap.min.css">
 <link rel="stylesheet" href="docs/style.css">
@@ -356,121 +385,85 @@ background-size: cover;
 </section>
 <section id="data" class="level3">
 <h3 class="anchored" data-anchor-id="data">Data</h3>
-<p>We organised the data by walkability criteria that were used in calculations. For comparability, the criteria are matching those of <a href="https://www.healthystreets.com/maps/london">Healthy Streets Index</a>.</p>
-<div id="quarto-accordion-acc-866d4b2a" class="accordion quarto-accordion">
-<div class="accordion-item">
+<p>We organised the data by walkability criteria that were used in calculations.</p>
+<p></p><div id="quarto-accordion-acc-866d4b2a" class="accordion quarto-accordion"> <div class="accordion-item">
 <div class="accordion-header" id="heading-quarto-accordion-acc-866d4b2a-lswelcomed6e97a517-1">
 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-866d4b2a-lswelcomed6e97a517-1" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-866d4b2a-lswelcomed6e97a517-1">
-<div class="accordion-header-content">
-Everyone feels welcome
-</div>
+<div class="accordion-header-content"> Everyone feels welcome </div>
 </button>
 </div>
 <div id="collapse-quarto-accordion-acc-866d4b2a-lswelcomed6e97a517-1" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-866d4b2a-lswelcomed6e97a517-1" data-bs-parent="#quarto-accordion-acc-866d4b2a">
 <div class="accordion-body">
-<div class="accordion-body-content">
-<strong>Slope steepness</strong> as a proxy for the ease of walking for various groups, calculated from England 1m Composite DTM. Environment Agency copyright and/or database right 2022. All rights reserved. <a href="https://environment.data.gov.uk/dataset/562c9d56-7c2d-4d42-83bb-578d6e97a517">Source</a>
+<div class="accordion-body-content"> <strong>Slope steepness</strong> as a proxy for the ease of walking for various groups, calculated from England 1m Composite DTM. Environment Agency copyright and/or database right 2022. All rights reserved. <a href="https://environment.data.gov.uk/dataset/562c9d56-7c2d-4d42-83bb-578d6e97a517">Source</a> </div>
 </div>
 </div>
-</div>
-</div>
-<div class="accordion-item">
+</div> <div class="accordion-item">
 <div class="accordion-header" id="heading-quarto-accordion-acc-866d4b2a-toonoisyd6e97a517-2">
 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-866d4b2a-toonoisyd6e97a517-2" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-866d4b2a-toonoisyd6e97a517-2">
-<div class="accordion-header-content">
-Not too noisy
-</div>
+<div class="accordion-header-content"> Not too noisy </div>
 </button>
 </div>
 <div id="collapse-quarto-accordion-acc-866d4b2a-toonoisyd6e97a517-2" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-866d4b2a-toonoisyd6e97a517-2" data-bs-parent="#quarto-accordion-acc-866d4b2a">
 <div class="accordion-body">
-<div class="accordion-body-content">
-<strong>Road noise exposure</strong> as a proxy for acoustic comfort © Crown copyright, Open Government Licence v3.0. <a href="https://environment.data.gov.uk/dataset/562c9d56-7c2d-4d42-83bb-578d6e97a517">Source</a>
+<div class="accordion-body-content"> <strong>Road noise exposure</strong> as a proxy for acoustic comfort © Crown copyright, Open Government Licence v3.0. <a href="https://environment.data.gov.uk/dataset/562c9d56-7c2d-4d42-83bb-578d6e97a517">Source</a> </div>
 </div>
 </div>
-</div>
-</div>
-<div class="accordion-item">
+</div> <div class="accordion-item">
 <div class="accordion-header" id="heading-quarto-accordion-acc-866d4b2a-feelsafepagepage-3">
 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-866d4b2a-feelsafepagepage-3" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-866d4b2a-feelsafepagepage-3">
-<div class="accordion-header-content">
-People feel safe
-</div>
+<div class="accordion-header-content"> People feel safe </div>
 </button>
 </div>
 <div id="collapse-quarto-accordion-acc-866d4b2a-feelsafepagepage-3" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-866d4b2a-feelsafepagepage-3" data-bs-parent="#quarto-accordion-acc-866d4b2a">
 <div class="accordion-body">
-<div class="accordion-body-content">
-<strong>Safety from crime</strong> represented with reported crime counts. Sourced using the Police API. Street-level crimes in the past year (2025) were added. UK Home Office via data.police.uk, OGL v3.0. <a href="https://data.police.uk/docs/">Source</a> <br> <strong>Safety from traffic</strong> represented with counts of pedestrian collisions occurred 2023-26 (all injury levels). Several years ensure sufficient density of points. © TfL <a href="https://experience.arcgis.com/experience/f817ed4d14b7434584959384d560f1fc/page/Page">Source</a>
+<div class="accordion-body-content"> <strong>Safety from crime</strong> represented with reported crime counts. Sourced using the Police API. Street-level crimes in the past year (2025) were added. UK Home Office via data.police.uk, OGL v3.0. <a href="https://data.police.uk/docs/">Source</a> <br> <strong>Safety from traffic</strong> represented with counts of pedestrian collisions occurred 2023-26 (all injury levels). Several years ensure sufficient density of points. © TfL <a href="https://experience.arcgis.com/experience/f817ed4d14b7434584959384d560f1fc/page/Page">Source</a> </div>
 </div>
 </div>
-</div>
-</div>
-<div class="accordion-item">
+</div> <div class="accordion-item">
 <div class="accordion-header" id="heading-quarto-accordion-acc-866d4b2a-seeanddosexplore-4">
 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-866d4b2a-seeanddosexplore-4" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-866d4b2a-seeanddosexplore-4">
-<div class="accordion-header-content">
-Things to see and do
-</div>
+<div class="accordion-header-content"> Things to see and do </div>
 </button>
 </div>
 <div id="collapse-quarto-accordion-acc-866d4b2a-seeanddosexplore-4" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-866d4b2a-seeanddosexplore-4" data-bs-parent="#quarto-accordion-acc-866d4b2a">
 <div class="accordion-body">
-<div class="accordion-body-content">
-<strong>Street activity</strong> represented by points of interest such as shops and services. The data for this research have been provided by the Geographic Data Service (GeoDS), a Smart Data Research UK Investment: ES/Z504464/1. <a href="https://data.geods.ac.uk/dataset/point-of-interest-data-for-the-united-kingdom">Source</a> <br> <strong>Richness of historic environment</strong> represented with listed buildings as points. © Crown Copyright 2026. Contains Ordnance Survey data © Crown copyright and database right 2026. Released under OGL. <a href="https://opendata-historicengland.hub.arcgis.com/datasets/historicengland::listed-building-points/explore">Source</a>
+<div class="accordion-body-content"> <strong>Street activity</strong> represented by points of interest such as shops and services. The data for this research have been provided by the Geographic Data Service (GeoDS), a Smart Data Research UK Investment: ES/Z504464/1. <a href="https://data.geods.ac.uk/dataset/point-of-interest-data-for-the-united-kingdom">Source</a> <br> <strong>Richness of historic environment</strong> represented with listed buildings as points. © Crown Copyright 2026. Contains Ordnance Survey data © Crown copyright and database right 2026. Released under OGL. <a href="https://opendata-historicengland.hub.arcgis.com/datasets/historicengland::listed-building-points/explore">Source</a> </div>
 </div>
 </div>
-</div>
-</div>
-<div class="accordion-item">
+</div> <div class="accordion-item">
 <div class="accordion-header" id="heading-quarto-accordion-acc-866d4b2a-cleanair222lg5g-5">
 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-866d4b2a-cleanair222lg5g-5" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-866d4b2a-cleanair222lg5g-5">
-<div class="accordion-header-content">
-Clean air
-</div>
+<div class="accordion-header-content"> Clean air </div>
 </button>
 </div>
 <div id="collapse-quarto-accordion-acc-866d4b2a-cleanair222lg5g-5" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-866d4b2a-cleanair222lg5g-5" data-bs-parent="#quarto-accordion-acc-866d4b2a">
 <div class="accordion-body">
-<div class="accordion-body-content">
-<strong>Atmospheric emissions</strong>, representing street-level air pollution – NO2, PM2.5, PM10. Greater London Authority (GLA), London Datastore. <a href="https://data.london.gov.uk/dataset/london-atmospheric-emissions-inventory-laei-2022-2lg5g/">Source</a>
+<div class="accordion-body-content"> <strong>Atmospheric emissions</strong>, representing street-level air pollution – NO2, PM2.5, PM10. Greater London Authority (GLA), London Datastore. <a href="https://data.london.gov.uk/dataset/london-atmospheric-emissions-inventory-laei-2022-2lg5g/">Source</a> </div>
 </div>
 </div>
-</div>
-</div>
-<div class="accordion-item">
+</div> <div class="accordion-item">
 <div class="accordion-header" id="heading-quarto-accordion-acc-866d4b2a-ndshelterrain2022-6">
 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-866d4b2a-ndshelterrain2022-6" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-866d4b2a-ndshelterrain2022-6">
-<div class="accordion-header-content">
-Shade and shelter
-</div>
+<div class="accordion-header-content"> Shade and shelter </div>
 </button>
 </div>
 <div id="collapse-quarto-accordion-acc-866d4b2a-ndshelterrain2022-6" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-866d4b2a-ndshelterrain2022-6" data-bs-parent="#quarto-accordion-acc-866d4b2a">
 <div class="accordion-body">
-<div class="accordion-body-content">
-<strong>Green space exposure</strong>, represented by vegetation cover (NDVI) derived from Sentinel-2 COPERNICUS S2_SR_HARMONIZED GEE layer. Contains modified Copernicus Sentinel data (2023), processed via Google Earth Engine. <a href="https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR_HARMONIZED">Source</a> <br> <strong>Availability of shade</strong>, represented by mean % of street covered by shade calculated from England 1m Composite DSM and Sentinel2. Environment Agency copyright and/or database right 2022. All rights reserved. <a href="https://environment.data.gov.uk/dataset/562c9d56-7c2d-4d42-83bb-578d6e97a517">Source</a>. Contains modified Copernicus Sentinel data (2023), processed via Google Earth Engine. <a href="https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR_HARMONIZED">Source</a>. Environment Agency copyright and/or database right 2022. All rights reserved. <a href="https://developers.google.com/earth-engine/datasets/catalog/UK_EA_ENGLAND_1M_TERRAIN_2022">Source</a> <br> <strong>Protection from wind</strong>, represented by a combination of mean wind speed (m/s) at 10m and presence of barriers. Global Wind Atlas 3.0, a free, web-based application developed, owned and operated by the Technical University of Denmark (DTU). The Global Wind Atlas 3.0 is released in partnership with the World Bank Group, utilizing data provided by Vortex, using funding provided by the Energy Sector Management Assistance Program (ESMAP). For additional information: https://globalwindatlas.info. <a href="https://globalwindatlas.info/en/">Source</a>. Environment Agency copyright and/or database right 2022. All rights reserved. <a href="https://developers.google.com/earth-engine/datasets/catalog/UK_EA_ENGLAND_1M_TERRAIN_2022">Source</a>
+<div class="accordion-body-content"> <strong>Green space exposure</strong>, represented by vegetation cover (NDVI) derived from Sentinel-2 COPERNICUS S2_SR_HARMONIZED GEE layer. Contains modified Copernicus Sentinel data (2023), processed via Google Earth Engine. <a href="https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR_HARMONIZED">Source</a> <br> <strong>Availability of shade</strong>, represented by mean % of street covered by shade calculated from England 1m Composite DSM and Sentinel2. Environment Agency copyright and/or database right 2022. All rights reserved. <a href="https://environment.data.gov.uk/dataset/562c9d56-7c2d-4d42-83bb-578d6e97a517">Source</a>. Contains modified Copernicus Sentinel data (2023), processed via Google Earth Engine. <a href="https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR_HARMONIZED">Source</a>. Environment Agency copyright and/or database right 2022. All rights reserved. <a href="https://developers.google.com/earth-engine/datasets/catalog/UK_EA_ENGLAND_1M_TERRAIN_2022">Source</a> <br> <strong>Protection from wind</strong>, represented by a combination of mean wind speed (m/s) at 10m and presence of barriers. Global Wind Atlas 3.0, a free, web-based application developed, owned and operated by the Technical University of Denmark (DTU). The Global Wind Atlas 3.0 is released in partnership with the World Bank Group, utilizing data provided by Vortex, using funding provided by the Energy Sector Management Assistance Program (ESMAP). For additional information: https://globalwindatlas.info. <a href="https://globalwindatlas.info/en/">Source</a>. Environment Agency copyright and/or database right 2022. All rights reserved. <a href="https://developers.google.com/earth-engine/datasets/catalog/UK_EA_ENGLAND_1M_TERRAIN_2022">Source</a> </div>
 </div>
 </div>
-</div>
-</div>
-<div class="accordion-item">
+</div> <div class="accordion-item">
 <div class="accordion-header" id="heading-quarto-accordion-acc-866d4b2a-rtingdataright2026-7">
 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-quarto-accordion-acc-866d4b2a-rtingdataright2026-7" aria-expanded="false" aria-controls="collapse-quarto-accordion-acc-866d4b2a-rtingdataright2026-7">
-<div class="accordion-header-content">
-Supporting data
-</div>
+<div class="accordion-header-content"> Supporting data </div>
 </button>
 </div>
 <div id="collapse-quarto-accordion-acc-866d4b2a-rtingdataright2026-7" class="accordion-collapse collapse" aria-labelledby="heading-quarto-accordion-acc-866d4b2a-rtingdataright2026-7" data-bs-parent="#quarto-accordion-acc-866d4b2a">
 <div class="accordion-body">
-<div class="accordion-body-content">
-<strong>Streets and pedestrian paths</strong> acquired from OSM through Geofabrik. ©OpenStreetMap contributors <br> <strong>Boundaries of London</strong> from <a href="https://data.london.gov.uk/dataset/statistical-gis-boundary-files-for-london-20od9/">London Datastore</a>. © Copyright 2026
+<div class="accordion-body-content"> <strong>Streets and pedestrian paths</strong> acquired from OSM through Geofabrik. ©OpenStreetMap contributors <br> <strong>Boundaries of London</strong> from <a href="https://data.london.gov.uk/dataset/statistical-gis-boundary-files-for-london-20od9/">London Datastore</a>. © Copyright 2026 </div>
 </div>
 </div>
-</div>
-</div>
-</div>
+</div> </div> <br><p></p>
 </section>
 <section id="methodology" class="level3">
 <h3 class="anchored" data-anchor-id="methodology">Methodology</h3>
@@ -479,13 +472,26 @@ Supporting data
 <figure class="figure">
 <div class="quarto-figure quarto-figure-left">
 <figure class="figure">
-<p><a href="images/Healthy+Streets+Indicators+Diagram_NEW.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Healthy Streets Index indicators"><img src="images/Healthy+Streets+Indicators+Diagram_NEW.png" class="img-fluid quarto-figure quarto-figure-left figure-img" style="width:50.0%" alt="Healthy Streets Index indicators"></a></p>
+<p><a href="images/method_scores.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Approach to the indicators. Adapted from Healthy Streets’ framework © Lucy Sanders"><img src="images/method_scores.png" class="img-fluid quarto-figure quarto-figure-left figure-img" style="width:100.0%" alt="Approach to the indicators. Adapted from Healthy Streets’ framework © Lucy Sanders"></a></p>
 </figure>
 </div>
-<figcaption>Healthy Streets Index indicators</figcaption>
+<figcaption>Approach to the indicators. Adapted from Healthy Streets’ framework © Lucy Sanders</figcaption>
 </figure>
 </div>
-<p>We applied the scores on a graph of walkable networks, which allowed continuous path search across the study area. Using these scores, the personalised routing cost is defined as a weighted, normalised, and additive cost function:</p>
+<p>We transformed the scores into penalties, and applied them on a graph of walkable networks, which allowed continuous path search across the study area. Using these pre-calculated route-based penalties, the personalised routing cost is defined as a weighted, normalised, and additive cost function:</p>
+<p><span class="math display">\[
+\Large
+\begin{aligned}
+\text{edge\_cost} =\;&amp;
+w_{\text{length}} \cdot \text{length}_{\text{norm}} \\
+&amp;+ w_{\text{safety}} \cdot \text{unsafety}_{\text{penalty}} \\
+&amp;+ w_{\text{activity}} \cdot \text{inactivity}_{\text{penalty}} \\
+&amp;+ w_{\text{walk}} \cdot \text{walking\_effort}_{\text{penalty}} \\
+&amp;+ w_{\text{shade}} \cdot \text{lack\_shade\_shelter}_{\text{penalty}} \\
+&amp;+ w_{\text{air}} \cdot \text{polluted\_air}_{\text{penalty}} \\
+&amp;+ w_{\text{noise}} \cdot \text{road\_noise}_{\text{penalty}}
+\end{aligned}
+\]</span></p>
 </section>
 <section id="interface" class="level3">
 <h3 class="anchored" data-anchor-id="interface">Interface</h3>

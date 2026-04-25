@@ -30,7 +30,7 @@ We identified two main end user groups:
 
 ### Data
 
-We  organised the data by walkability criteria that were used in calculations. For comparability, the criteria are matching those of [Healthy Streets Index](https://www.healthystreets.com/maps/london).
+We  organised the data by walkability criteria that were used in calculations. 
 
 {{< accordion items='[
 {"header":"Everyone feels welcome","body":"**Slope steepness** as a proxy for the ease of walking for various groups, calculated from England 1m Composite DTM. Environment Agency copyright and/or database right 2022. All rights reserved. [Source](https://environment.data.gov.uk/dataset/562c9d56-7c2d-4d42-83bb-578d6e97a517)","collapsed":true},
@@ -48,14 +48,29 @@ We  organised the data by walkability criteria that were used in calculations. F
 {"header":"Supporting data","body":"**Streets and pedestrian paths** acquired from OSM through Geofabrik. ©OpenStreetMap contributors <br>
     **Boundaries of London** from [London Datastore](https://data.london.gov.uk/dataset/statistical-gis-boundary-files-for-london-20od9/). © Copyright 2026","collapsed":true}
 ]' >}}
+<br>
 
 ### Methodology
 
 To structure our analysis for London, we adopted the Healthy Streets’ framework, as it is endorsed by the Mayor of London and TfL. We picked quantifiable indicators (as opposed to survey and observation-based), and represented them with composite scores built with raster and point datasets.
 
-![Healthy Streets Index indicators](images/Healthy+Streets+Indicators+Diagram_NEW.png){width=50% fig-align="left" .lightbox}
+![Approach to the indicators. Adapted from Healthy Streets’ framework © Lucy Sanders](images/method_scores.png){width=100% fig-align="left" .lightbox}
 
-We applied the scores on a graph of walkable networks, which allowed continuous path search across the study area. Using these scores, the personalised routing cost is defined as a weighted, normalised, and additive cost function:
+We transformed the scores into penalties, and applied them on a graph of walkable networks, which allowed continuous path search across the study area. Using these pre-calculated route-based penalties, the personalised routing cost is defined as a weighted, normalised, and additive cost function:
+
+$$
+\Large
+\begin{aligned}
+\text{edge\_cost} =\;&
+w_{\text{length}} \cdot \text{length}_{\text{norm}} \\
+&+ w_{\text{safety}} \cdot \text{unsafety}_{\text{penalty}} \\
+&+ w_{\text{activity}} \cdot \text{inactivity}_{\text{penalty}} \\
+&+ w_{\text{walk}} \cdot \text{walking\_effort}_{\text{penalty}} \\
+&+ w_{\text{shade}} \cdot \text{lack\_shade\_shelter}_{\text{penalty}} \\
+&+ w_{\text{air}} \cdot \text{polluted\_air}_{\text{penalty}} \\
+&+ w_{\text{noise}} \cdot \text{road\_noise}_{\text{penalty}}
+\end{aligned}
+$$
 
 ### Interface
 
