@@ -1,13 +1,4 @@
-"""
-Flask backend for the routing prototype.
-
-What does this do:
-- load the cached graph
-- geocode and reverse geocode user input
-- snap origin / destination to the graph
-- compute shortest and personalized routes
-- return GeoJSON and route stats to the frontend
-"""
+"""Flask backend for the routing prototype."""
 
 import pickle
 from pathlib import Path
@@ -32,7 +23,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 
 
-# Global cache only load once at startup
 GRAPH_CACHE_PATH = DATA_DIR / "main_graph.pkl"
 
 print("Loading cached graph...")
@@ -54,6 +44,9 @@ NOMINATIM_HEADERS = {
     "User-Agent": "CASA0025-Routing-Prototype"
 }
 
+# Maps slider level (1–3) to MCDM weight; level 2 is the default balanced setting
+PREFERENCE_WEIGHT_MAP = {1: 0.2, 2: 1.0, 3: 4.0}
+
 ## functions
 def route_gdf_to_geojson(route_gdf):
     """
@@ -64,20 +57,16 @@ def route_gdf_to_geojson(route_gdf):
 
 
 def format_stats(stats: dict):
-    """
-    Format routing stats into a frontend-friendly structure.
-    """
-    avg_slope_value = stats.get("average_slope_score", stats.get("average_slope_pct", 0.0))
-
+    avg_walking_effort = round(stats.get("average_walking_effort", 0.0), 4)
     return {
         "length_m": round(stats["total_length_m"], 2),
-        "avg_slope_score": round(avg_slope_value, 2),
-        "avg_slope_pct": round(avg_slope_value, 2),
+        "avg_walking_effort": avg_walking_effort,
+        "avg_slope_score": avg_walking_effort,
         "road_length_m": round(stats["road_length_m"], 2),
         "footpath_length_m": round(stats["footpath_length_m"], 2),
         "footpath_share": round(stats["footpath_share"], 4),
         "edge_count": stats["edge_count"],
-        "node_count": stats["node_count"]
+        "node_count": stats["node_count"],
     }
 
 
@@ -104,43 +93,32 @@ def compute_routes(origin, destination, preferences=None):
     """
     preferences = preferences or {}
 
-    steepness_level = int(preferences.get("steepness", 2))
-    steepness_level = max(1, min(3, steepness_level))
-    steepness_factor_map = {
-        1: 1.5,
-        2: 4.0,
-        3: 8.0,
-    }
-    steepness_factor = steepness_factor_map[steepness_level]
-    crime_factor = float(preferences.get("crime", 0.0))
+    walk_level = int(preferences.get("walk", 2))
+    walk_level = max(1, min(3, walk_level))
+    walk_factor = PREFERENCE_WEIGHT_MAP[walk_level]
+    safety_factor = float(preferences.get("safety", 0.0))
+    activity_factor = float(preferences.get("activity", 0.0))
+    shade_shelter_factor = float(preferences.get("shade_shelter", 0.0))
     air_factor = float(preferences.get("air", 0.0))
-
-    # Noise remains a placeholder in the current web layer.
-    # The canonical routing schema is still centred on slope_score / crime_score / air_score.
     noise_factor = float(preferences.get("noise", 0.0))
 
-    # Read WGS84 coordinates sent from the frontend
     origin_lng = float(origin["lng"])
     origin_lat = float(origin["lat"])
     destination_lng = float(destination["lng"])
     destination_lat = float(destination["lat"])
 
-    # Transform to EPSG:27700
     origin_x, origin_y = transformer_to_27700.transform(origin_lng, origin_lat)
     destination_x, destination_y = transformer_to_27700.transform(destination_lng, destination_lat)
 
-    # Snap to the nearest graph node
     start_node, start_dist = snap_point_to_graph_node(origin_x, origin_y, nodes, tree)
     end_node, end_dist = snap_point_to_graph_node(destination_x, destination_y, nodes, tree)
 
-    # Reject points that are too far from the routable network
     if start_dist > 300:
         raise ValueError(f"Origin is too far from the routed network ({start_dist:.1f} m).")
 
     if end_dist > 300:
         raise ValueError(f"Destination is too far from the routed network ({end_dist:.1f} m).")
 
-    # Shortest route remains unchanged
     shortest_nodes, shortest_route_gdf, shortest_stats = solve_route(
         G_main, start_node, end_node, weight_field="cost_shortest"
     )
@@ -148,8 +126,11 @@ def compute_routes(origin, destination, preferences=None):
     # Personalised route uses a dynamic weight function built from precomputed road-segment scores, 
     # which keeps the web app fast at runtime.
     preference_weight = build_preference_weight_function(
-        steepness_factor=steepness_factor,
-        crime_factor=crime_factor,
+        length_factor=1.0,
+        walk_factor=walk_factor,
+        safety_factor=safety_factor,
+        activity_factor=activity_factor,
+        shade_shelter_factor=shade_shelter_factor,
         air_factor=air_factor,
         noise_factor=noise_factor,
     )
@@ -158,7 +139,6 @@ def compute_routes(origin, destination, preferences=None):
         G_main, start_node, end_node, weight_field=preference_weight
     )
 
-    # Return a structure that the frontend can use directly
     result = {
         "shortest": {
             "geojson": route_gdf_to_geojson(shortest_route_gdf),
@@ -175,11 +155,15 @@ def compute_routes(origin, destination, preferences=None):
             "end_node": end_node
         },
         "preferences": {
-            "steepness": steepness_level,
-            "steepness_factor": steepness_factor,
-            "crime": crime_factor,
+            "walk": walk_level,
+            "walk_factor": walk_factor,
+            "safety": safety_factor,
+            "activity": activity_factor,
+            "shade_shelter": shade_shelter_factor,
             "air": air_factor,
             "noise": noise_factor,
+            "steepness": walk_level,
+            "steepness_factor": walk_factor,
         }
     }
 

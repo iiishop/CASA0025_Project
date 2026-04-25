@@ -1,16 +1,25 @@
 """
 Core graph and routing functions for the Flask prototype.
 
-This file contains:
-- network cleaning helpers
-- graph construction
-- base edge cost definition
-- personalised weight function
-- shortest path solving
+app.py imports ONLY these four functions:
+  build_node_kdtree()
+  build_preference_weight_function()
+  snap_point_to_graph_node()
+  solve_route()
+
+Graph is loaded from data/main_graph.pkl (built by build_graph_cache_from_uv.py).
+Schema: walking_effort_penalty, safety_penalty, activity_penalty,
+        shade_shelter_penalty, air_penalty, noise_penalty,
+        score_feel_safe, score_things_see_do, score_walking_effort,
+        score_shade_shelter.
+
+build_graph_from_segments() and prepare_network_and_routes()
+are the old preprocessing+routing pipeline that built graphs
+from raw shapefiles at request time. They remain here for
+reference only and must NOT be mixed into the System A path.
 """
 
 import warnings
-from collections import defaultdict
 from pathlib import Path
 
 import geopandas as gpd
@@ -18,8 +27,8 @@ import pandas as pd
 import networkx as nx
 import numpy as np
 
-from shapely.geometry import LineString, MultiLineString, Point
-from shapely.ops import unary_union, linemerge
+from shapely.geometry import LineString, Point
+from shapely.ops import unary_union
 from scipy.spatial import cKDTree
 
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -73,8 +82,6 @@ def replace_line_endpoints(line: LineString, start_xy, end_xy) -> LineString:
     return LineString(cleaned)
 
 
-#merge nearby endpoints to one representative point
-
 def snap_nearby_endpoints(gdf: gpd.GeoDataFrame, tolerance=3.0) -> gpd.GeoDataFrame:
     """
     Cluster endpoints within the given tolerance (in metres) and replace them with the cluster centroid.
@@ -94,7 +101,6 @@ def snap_nearby_endpoints(gdf: gpd.GeoDataFrame, tolerance=3.0) -> gpd.GeoDataFr
     arr = np.array(endpoints)
     tree = cKDTree(arr)
 
-    # Use BFS & union-like grouping to find connected components
     visited = np.zeros(len(arr), dtype=bool)
     groups = []
 
@@ -116,7 +122,6 @@ def snap_nearby_endpoints(gdf: gpd.GeoDataFrame, tolerance=3.0) -> gpd.GeoDataFr
 
         groups.append(group)
 
-    # Use the centroid of each group as the snapped coordinate
     snapped_xy = {}
     for group in groups:
         xs = arr[group, 0]
@@ -126,7 +131,6 @@ def snap_nearby_endpoints(gdf: gpd.GeoDataFrame, tolerance=3.0) -> gpd.GeoDataFr
         for idx in group:
             snapped_xy[idx] = (cx, cy)
 
-    # Replace endpoints for every line
     new_geoms = []
     for row_id, geom in enumerate(gdf.geometry):
         start_idx = 2 * row_id
@@ -227,10 +231,7 @@ def map_attributes_to_segments(
 
     # Default missing continuous score columns to 0
     if "slope_score" not in out.columns:
-        if "slope_pct" in out.columns:
-            out["slope_score"] = out["slope_pct"]
-        else:
-            out["slope_score"] = 0.0
+        out["slope_score"] = 0.0
     out["slope_score"] = pd.to_numeric(out["slope_score"], errors="coerce").fillna(0.0)
 
     for score_col in ["crime_score", "air_score"]:
@@ -241,25 +242,19 @@ def map_attributes_to_segments(
     return out
 
 
-# Graph construction
+# build_graph_from_segments() belongs to the old preprocessing pipeline that built graphs from raw shapefiles.  
+# Flask loads main_graph.pkl instead.
 def build_graph_from_segments(
     seg_gdf: gpd.GeoDataFrame,
     footpath_penalty: float = 1.08,
     slope_factor: float = 1.0
 ) -> nx.Graph:
     """
+    LEGACY — System B only.  Flask uses main_graph.pkl (build_graph_cache_from_uv.py).
+
     Each segment becomes one undirected edge.
     Nodes are defined by the start and end coordinates of each segment.
-
-    cost_shortest:
-        length only
-    cost_easiest:
-        length * pre-calculated slope-score penalty * type penalty
-
-    Design logic:
-    - shortest routing stays purely length-based
-    - personalised routing can still apply a slight footpath penalty
-    - if a footpath offers a meaningful shortcut (for example through a park), it can still be selected
+    Uses old schema: slope_score, crime_score, air_score — not the penalty schema.
     """
     G = nx.Graph()
 
@@ -277,7 +272,6 @@ def build_graph_from_segments(
 
         slope_penalty = 1.0 + slope_factor * max(slope_score, 0.0) / 100.0
 
-        # Prefer roads, with a slight penalty on footpaths
         type_factor = footpath_penalty if edge_type == "footpath" else 1.0
 
         edge_data = row.drop(labels="geometry").to_dict()
@@ -328,11 +322,9 @@ def build_node_kdtree(G: nx.Graph):
         if len(coords) < 2:
             continue
 
-        # Use the first coordinate of the edge for node u
         if u not in node_coords:
             node_coords[u] = coords[0]
 
-        # Use the last coordinate of the edge for node v
         if v not in node_coords:
             node_coords[v] = coords[-1]
 
@@ -354,29 +346,37 @@ def snap_point_to_graph_node(x, y, nodes, tree):
     return nodes[idx], float(dist)
 
 
-def build_preference_weight_function(steepness_factor=4.0, crime_factor=0.0, air_factor=0.0, noise_factor=0.0):
+def build_preference_weight_function(
+    length_factor=1.0,
+    walk_factor=1.0,
+    safety_factor=0.0,
+    activity_factor=0.0,
+    shade_shelter_factor=0.0,
+    air_factor=0.0,
+    noise_factor=0.0,
+):
     """
-    Build a dynamic edge-weight function for personalised routing.
-    Scores are pre-attached to each road segment before routing.
-    This keeps the web app fast because the expensive spatial processing is done upstream.
-    Noise is currently only a UI / API placeholder, so its component defaults to 0.
-    """
+    Additive MCDM edge-weight function for personalised Dijkstra routing.
 
-    # This function is passed directly into NetworkX so the route cost can change dynamically with the user's current preferences.
+    edge_cost = w_length * length_norm
+              + w_walk   * walking_effort_penalty
+              + w_safety * safety_penalty
+              + w_act    * activity_penalty
+              + w_shade  * shade_shelter_penalty
+              (+ future: air_penalty, noise_penalty)
+
+    All penalty fields are already [0, 1] with higher = worse.
+    Slider weights (factors) only control how much each dimension matters.
+    """
     def weight(u, v, data):
-        length_m = float(data.get("length_m", 0.0))
-        type_factor = float(data.get("type_factor", 1.0))
-        slope_component = float(data.get("slope_component", 0.0))
-        crime_component = float(data.get("crime_component", 0.0))
-        air_component = float(data.get("air_component", 0.0))
-        noise_component = float(data.get("noise_component", 0.0))
-
-        return length_m * type_factor * (
-            1.0
-            + float(steepness_factor) * slope_component
-            + float(crime_factor) * crime_component
-            + float(air_factor) * air_component
-            + float(noise_factor) * noise_component
+        return (
+            float(length_factor)         * float(data.get("length_norm", 0.0))
+            + float(walk_factor)         * float(data.get("walking_effort_penalty", 0.0))
+            + float(safety_factor)       * float(data.get("safety_penalty", 0.0))
+            + float(activity_factor)     * float(data.get("activity_penalty", 0.0))
+            + float(shade_shelter_factor)* float(data.get("shade_shelter_penalty", 0.0))
+            + float(air_factor)          * float(data.get("air_penalty", 0.0))
+            + float(noise_factor)        * float(data.get("noise_penalty", 0.0))
         )
 
     return weight
@@ -390,49 +390,56 @@ def solve_route(G: nx.Graph, source_node, target_node, weight_field):
 
     edge_rows = []
     total_length = 0.0
-    weighted_slope_sum = 0.0
+    weighted_effort_sum = 0.0
     footpath_length = 0.0
     road_length = 0.0
 
     for u, v in zip(node_path[:-1], node_path[1:]):
         data = G[u][v]
         edge_type = data.get("edge_type", "road")
+        length_m = data["length_m"]
 
         edge_rows.append({
             "u": u,
             "v": v,
-            "length_m": data["length_m"],
+            "length_m": length_m,
+            "length_norm": data.get("length_norm", 0.0),
             "slope_score": data.get("slope_score", 0.0),
-            "crime_score": data.get("crime_score", 0.0),
-            "air_score": data.get("air_score", 0.0),
+            # Canonical raw walking-effort field (higher = easier / better).
+            "score_walking_effort": data.get("score_walking_effort", 0.5),
+            "walking_effort_penalty": data.get("walking_effort_penalty", 0.0),
+            "safety_penalty": data.get("safety_penalty", 0.0),
+            "activity_penalty": data.get("activity_penalty", 0.0),
+            "shade_shelter_penalty": data.get("shade_shelter_penalty", 0.0),
+            "score_feel_safe": data.get("score_feel_safe", 0.5),
+            "score_things_see_do": data.get("score_things_see_do", 0.5),
+            "score_shade_shelter": data.get("score_shade_shelter", 0.5),
             "edge_type": edge_type,
             "display_type": data.get("display_type", edge_type),
             "cost_shortest": data["cost_shortest"],
-            "cost_easiest": data["cost_easiest"],
-            "geometry": data["geometry"]
+            "geometry": data["geometry"],
         })
 
-        total_length += data["length_m"]
-        weighted_slope_sum += data.get("slope_score", 0.0) * data["length_m"]
+        total_length += length_m
+        weighted_effort_sum += data.get("walking_effort_penalty", 0.0) * length_m
 
         if edge_type == "footpath":
-            footpath_length += data["length_m"]
+            footpath_length += length_m
         else:
-            road_length += data["length_m"]
+            road_length += length_m
 
-    avg_slope = weighted_slope_sum / total_length if total_length > 0 else 0.0
+    avg_walking_effort = weighted_effort_sum / total_length if total_length > 0 else 0.0
 
     route_gdf = gpd.GeoDataFrame(edge_rows, geometry="geometry", crs="EPSG:27700")
 
     stats = {
         "total_length_m": total_length,
-        "average_slope_score": avg_slope,
-        "average_slope_pct": avg_slope,
+        "average_walking_effort": avg_walking_effort,
         "road_length_m": road_length,
         "footpath_length_m": footpath_length,
         "footpath_share": footpath_length / total_length if total_length > 0 else 0.0,
         "edge_count": len(edge_rows),
-        "node_count": len(node_path)
+        "node_count": len(node_path),
     }
 
     return node_path, route_gdf, stats
@@ -481,30 +488,23 @@ def build_combined_network_from_full(full_gdf: gpd.GeoDataFrame) -> gpd.GeoDataF
     combined = pd.concat([roads_gdf, footpaths_gdf], ignore_index=True)
     return gpd.GeoDataFrame(combined, geometry="geometry", crs=full_gdf.crs)
 
-# Main end-to-end workflow
+# prepare_network_and_routes() is the old end-to-end pipeline that ran geometry cleaning + graph construction at request time.
 def prepare_network_and_routes(
     full_gdf: gpd.GeoDataFrame,
     sample_start_xy,
     sample_end_xy,
     snap_tolerance=3.0,
     footpath_penalty=1.08,
-    slope_factor=4,
+    slope_factor=6,
     out_shortest="route_shortest.geojson",
     out_easiest="route_easiest.geojson",
     out_network="network_processed.geojson"
 ):
     """
-    Main workflow:
-    0) split and rebuild a single-file network (road + footpath)
-    1) clean lines
-    2) snap nearby endpoints
-    3) split at intersections
-    4) map attributes back
-    5) build the graph
-    6) keep only the largest connected component
-    7) snap sample points to nodes in the main connected component
-    8) run shortest / easiest routing
-    9) export GeoJSON
+    LEGACY — System B only.  Flask uses main_graph.pkl (build_graph_cache_from_uv.py).
+
+    Old end-to-end workflow: geometry cleaning → graph build → route solve → GeoJSON export.
+    Uses old schema: slope_score, crime_score, air_score — not the penalty schema.
     """
 
     print("Step 0: split full network and combine roads + footpaths...")
@@ -519,10 +519,7 @@ def prepare_network_and_routes(
     if "length_m" not in base.columns:
         base["length_m"] = base.geometry.length
     if "slope_score" not in base.columns:
-        if "slope_pct" in base.columns:
-            base["slope_score"] = base["slope_pct"]
-        else:
-            base["slope_score"] = 0.0
+        base["slope_score"] = 0.0
     for score_col in ["crime_score", "air_score"]:
         if score_col not in base.columns:
             base[score_col] = 0.0
@@ -665,7 +662,7 @@ if __name__ == "__main__":
         sample_end_xy=sample_end_xy,
         snap_tolerance=3.0,
         footpath_penalty=1.08,
-        slope_factor=4.0,
+        slope_factor=6.0,
         out_shortest=str(DATA_DIR / "route_shortest.geojson"),
         out_easiest=str(DATA_DIR / "route_easiest.geojson"),
         out_network=str(DATA_DIR / "network_processed.geojson")
