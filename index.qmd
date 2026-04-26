@@ -41,7 +41,7 @@ We  organised the data by walkability criteria that were used in calculations.
 {"header":"Clean air","body":"**Atmospheric emissions**, representing street-level air pollution – NO2, PM2.5, PM10. Greater London Authority (GLA), London Datastore. [Source](https://data.london.gov.uk/dataset/london-atmospheric-emissions-inventory-laei-2022-2lg5g/)","collapsed":true},
 {"header":
     "Shade and shelter","body":"**Green space exposure**, represented by vegetation cover (NDVI) derived from Sentinel-2 COPERNICUS S2_SR_HARMONIZED GEE layer. Contains modified Copernicus Sentinel data (2023), processed via Google Earth Engine. [Source](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR_HARMONIZED) <br>
-    **Availability of shade**, represented by mean % of street covered by shade calculated from England 1m Composite DSM and Sentinel2. Environment Agency copyright and/or database right 2022. All rights reserved. [Source](https://environment.data.gov.uk/dataset/562c9d56-7c2d-4d42-83bb-578d6e97a517). Contains modified Copernicus Sentinel data (2023), processed via Google Earth Engine. [Source](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR_HARMONIZED). Environment Agency copyright and/or database right 2022. All rights reserved. [Source](https://developers.google.com/earth-engine/datasets/catalog/UK_EA_ENGLAND_1M_TERRAIN_2022) <br>
+    **Availability of shade**, represented by mean % of street covered by shade calculated from England 1m Composite DSM. Environment Agency copyright and/or database right 2022. All rights reserved. [Source](https://environment.data.gov.uk/dataset/562c9d56-7c2d-4d42-83bb-578d6e97a517). <br>
     **Protection from wind**, represented by a combination of mean wind speed (m/s) at 10m and presence of barriers. Global Wind Atlas 3.0, a free, web-based application developed, owned and operated by the Technical University of Denmark (DTU). The Global Wind Atlas 3.0 is released in partnership with the World Bank Group, utilizing data provided by Vortex, using funding provided by the Energy Sector Management Assistance Program (ESMAP). For additional information: https://globalwindatlas.info. [Source](https://globalwindatlas.info/en/). Environment Agency copyright and/or database right 2022. All rights reserved. [Source](https://developers.google.com/earth-engine/datasets/catalog/UK_EA_ENGLAND_1M_TERRAIN_2022)", 
     "collapsed":true},
 {"header":"Supporting data","body":"**Streets and pedestrian paths** acquired from OSM through Geofabrik. ©OpenStreetMap contributors <br>
@@ -91,13 +91,183 @@ Replace the link below with the link to your application.
 
 ### Indicator Precomputations
 
-**Everyone feels welcome**
+#### Shade and shelter
+
+This indicator measures whether a street offers shelter from sun in summer and wind during the rest of the year. Script is available [here](https://code.earthengine.google.com/?accept_repo=users/panevauk1/casa0025).
+
+Shade cover was modelled using `ee.Terrain.hillShadow()` with England 1m DSM, which captures buildings, vegetation, and other 
+shadow-casting features. Average summer solar azimuth and zenith were calculated 
+[separately](https://github.com/iiishop/CASA0025_Project/blob/main/composite_indicators_module/solar_position_calculation.ipynb) 
+using the [pvlib](https://pvlib-python.readthedocs.io/en/stable/) package. Mean surface temperature on the hottest day was used 
+to complement the shade metric.
+
+::: {.scroll-container style="overflow-y: scroll; height: 300px; "}
+
+``` javascript
+var shadowMap = ee.Terrain.hillShadow({
+  image: londonDsmMerc,
+  azimuth: 180.02504604372402,
+  zenith: 62.63912040279354,
+  neighborhoodSize: 100,
+  hysteresis: false
+});
+// Generate the shadow map
+var londonShadow = shadowMap.eq(0).rename('shadow')// 1 = shadow, 0 = not shadow
+  .toFloat()
+  .setDefaultProjection(targetProj);
+```
+:::
+<br>
+
+Wind calculation was simplified by modelling “wind shadow” from prevailing winds using the same approach. Wind direction was derived 
+from ERA5-Land Daily Aggregated horizontal wind vectors for non-summer months. A fixed “zenith” value was used to limit wind-shadow 
+extent, as vertical wind angle could not be robustly estimated. Mean wind speed was used to complement the wind cover metric.
+
+::: {.scroll-container style="overflow-y: scroll; height: 300px; "}
+
+``` javascript
+// WIND DIRECTION
+var wind = windSource
+  .filterBounds(london)
+  .filterDate('2025-10-19', '2026-03-19')
+  .select(['u_component_of_wind_10m', 'v_component_of_wind_10m'])
+  .mean()
+  .clipToCollection(london);
+
+// direction wind blows TO
+var windTo = wind.expression(
+  '(atan2(u, v) * 180 / pi + 360) % 360', {
+    u: wind.select('u_component_of_wind_10m'),
+    v: wind.select('v_component_of_wind_10m'),
+    pi: Math.PI
+}).rename('wind_to');
+
+// convert to direction wind comes FROM
+var windFrom = windTo.add(180).mod(360).rename('wind_from');
+
+var meanWindFrom = ee.Number(
+  windFrom.reduceRegion({
+    reducer: ee.Reducer.mean(),
+    geometry: london,
+    scale: 1000,
+    bestEffort: true,
+    maxPixels: 1e8
+  }).get('wind_from')
+);
+
+// 0 = sheltered, 1 = exposed
+var windShelterRaw = ee.Terrain.hillShadow({
+  image: londonDsmMerc,
+  azimuth: meanWindFrom,
+  zenith: 39,
+  neighborhoodSize: 9,
+  hysteresis: false
+});
+
+// 1 = wind protected, 0 = not protected
+var windProtected = windShelterRaw.eq(0)
+  .rename('wind_protected')
+  .toFloat()
+  .setDefaultProjection(targetProj);
+```
+:::
+<br>
+
+All scores were precomputed in Google Earth Engine by applying `ee.Reducer.mean()` to the multi-band raster over buffered street segments.
+
+::: {.scroll-container style="overflow-y: scroll; height: 300px; "}
+
+``` javascript
+var stacked = londonShadow
+  .addBands(surfaceTemp)
+  .addBands(windSpeed)
+  .addBands(windProtected)
+  .clipToCollection(london);
 
 
-**Things to see and do & feeling safe**
+// BATCH PROCESSING BY our_uid
+var uidField = 'our_uid';
+var batchSize = 80000;
+var bufferDistance = 10;   // meters
+var exportFolder = 'GEE_Road_Batches';
+var exportPrefix = 'roads_stats';
 
-The point-based scores are constructed using the “hot routes” approach that 
-plots point distributions on linear networks; the approach was originally 
+// Check UID range
+var minUid = ee.Number(roads.aggregate_min(uidField));
+var maxUid = ee.Number(roads.aggregate_max(uidField));
+
+// Number of batches based on UID range
+var nBatches = maxUid.subtract(minUid).divide(batchSize).ceil();
+print('Number of batches', nBatches);
+
+// Get one batch by UID range: [start, end)
+function getBatchByUid(fc, start, end) {
+  return fc.filter(ee.Filter.and(
+    ee.Filter.gte(uidField, start),
+    ee.Filter.lt(uidField, end)
+  ));
+}
+
+// Buffer roads only for raster extraction; keep original properties
+function bufferRoads(fc) {
+  return fc.map(function(f) {
+    return ee.Feature(f.buffer(bufferDistance)).copyProperties(f);
+  });
+}
+
+// Run zonal stats for one batch
+function computeBatchStats(roadsBatch) {
+  var bufferedBatch = bufferRoads(roadsBatch);
+
+  return stacked.reduceRegions({
+    collection: bufferedBatch,
+    reducer: ee.Reducer.mean(),
+    scale: 1,
+    crs: 'EPSG:3857',
+    tileScale: 8
+  });
+}
+// EXPORT ALL BATCHES
+nBatches.evaluate(function(n) {
+  minUid.evaluate(function(minVal) {
+
+    for (var i = 0; i < n; i++) {
+      var start = minVal + i * batchSize;
+      var end = start + batchSize;
+
+      var roadsBatch = getBatchByUid(roads, start, end);
+      var statsBatch = computeBatchStats(roadsBatch);
+
+      Export.table.toDrive({
+        collection: statsBatch,
+        description: exportPrefix + '_' + start + '_' + (end - 1),
+        folder: exportFolder,
+        fileNamePrefix: exportPrefix + '_' + start + '_' + (end - 1),
+        fileFormat: 'CSV',
+        selectors: [
+          uidField,
+          'shadow',
+          'surface_temp',
+          'wind_speed',
+          'wind_protected'
+        ]
+      });
+    }
+  });
+});
+```
+:::
+<br>
+
+The application below illustrates the 2 core layers generated for "shade and shelter" indicator.
+
+<iframe src='https://ee-panevauk1.projects.earthengine.app/view/sunwindshelter' width='100%' height='700px'></iframe>
+
+The NDVI was [computed](https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/backend/app/ndvi_service.py) with Sentine2 using the classic approach, and then aggregated into the combined score.
+
+#### Things to see and do & feeling safe
+
+The point-based scores are constructed using the “hot routes” approach; it was originally 
 developed for crime analysis (Tompson, Partridge and Shepherd, 2009) to better represent 
 route-based concentrations. The [script](https://github.com/iiishop/CASA0025_Project/blob/main/composite_indicators_module/network_kde.py) 
 projects points onto street segments, then calculates the density of points based on the gaussian 
@@ -129,7 +299,6 @@ $$
 ::: {.scroll-container style="overflow-y: scroll; height: 300px; "}
 
 ``` python
-# This is the concept used in the script, not the actual code. Please see the script using the link above to see other parameters of the function that we considered such as potential to add point weights, analyse several categories at ones etc.
 # Compute KDE score for a road segment from nearby points
 for _, point_row in candidates.iterrows():
 
@@ -148,43 +317,50 @@ Each indicator (activity and safety) is aggregated through an unweighted l
 inear combination of two metrics, aggregated score is rescaled using min–max 
 normalization so that values fall within the predefined range [0,1].
 
+#### Clean air & noise
 
-**Clean air & noise**
+The indicators were normalised and treated for missing and extreme values. The normalized indicators were then integrated via a weighted linear combination to derive a composite index for each road segment. Script [here](https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/backend/app/laei_service.py).
 
-::: {.scroll-container style="overflow-y: scroll; height: 300px; "}
+#### Walking effort
 
-``` javascript
-// Run zonal stats for one batch
-function computeBatchStats(roadsBatch) {
-  var bufferedBatch = bufferRoads(roadsBatch);
-
-  return stacked.reduceRegions({
-    collection: bufferedBatch,
-    reducer: ee.Reducer.mean(),
-    scale: 1,
-    crs: 'EPSG:3857',
-    tileScale: 8
-  });
-}
-```
-:::
-
-**Shade and shelter**
-
-The scores were pre-computed with Google Earth Engine by applying `ee.Reducer.mean()` on the multi-band raster using the buffered street network.
-
-Use `Map.setCenter()` to move the map.
-
-::: {.scroll-container style="overflow-y: scroll; height: 300px; "}
-
-``` javascript
-
-
-```
-:::
-
+Slope was derived from a DEM by sampling the start and end points of each road segment and calculating the 
+elevation difference relative to the segment length. This allowed each segment to be described not only 
+by distance but also by the physical effort required to walk along it. The script for this part can be found [here](https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/yu_routing/data-prep/add_slope_to_network.py).
 
 ### Network graph and routing
 
+We converted the indicator-enriched network into a graph structure, where each road segment is represented 
+as an edge and intersections as nodes. This allows continuous path search and provides the structural basis 
+for both shortest-path and personalised routing. Instead of rebuilding the graph every time a route is 
+requested, the project uses a cached version (main_graph.pkl), making the system responsive for user 
+interaction.
+
+A limitation of the current framework is that the quality of the personalised route depends heavily on 
+the quality of the segment-level scores produced during preprocessing. Some variables may show highly 
+uneven distributions across the network, which can affect both the visual interpretation of the overlay 
+and the sensitivity of route choice. Additionally, the behavioural realism of pedestrian decision-making 
+is still simplified to a weighted additive structure to keep the model transparent and computationally 
+efficient.
+
+The scripts for this part are stored [here](https://github.com/iiishop/CASA0025_Project/tree/main/ComfortPath/yu_routing).
+
 
 ## References
+
+Bartzokas-Tsiompras, A., Bakogiannis, E. and Nikitas, A. (2023) ‘Global microscale walkability ratings and rankings: A novel composite indicator for 59 European city centres’, Journal of Transport Geography, 111, p. 103645. Available at: https://doi.org/10.1016/j.jtrangeo.2023.103645. 
+
+Jensen, A., Anderson, K., Holmgren, W., Mikofski, M., Hansen, C., Boeman, L., Loonen, R. “pvlib iotools — Open-source Python functions for seamless access to solar irradiance data.” Solar Energy, 266, 112092, (2023). DOI: 10.1016/j.solener.2023.112092.
+
+How Weighted Overlay works (no date) ArcGIS Pro. ArcGIS Pro. Available at: https://pro.arcgis.com/en/pro-app/latest/tool-reference/spatial-analyst/how-weighted-overlay-works.htm (Accessed: 26 April 2026). 
+
+Labdaoui, K. et al. (2021) ‘The Street Walkability and Thermal Comfort Index (SWTCI): A new assessment tool combining street design measurements and thermal comfort’, Science of The Total Environment, 795, p. 148663. Available at: https://doi.org/10.1016/j.scitotenv.2021.148663. 
+
+Socharoentum, M. and Karimi, H.A. (2016) ‘Multi-modal transportation with multi-criteria walking (MMT-MCW): Personalized route recommender’, Computers, Environment and Urban Systems, 55, pp. 44–54. Available at: https://doi.org/10.1016/j.compenvurbsys.2015.10.005. 
+
+Sprent, R.F. et al. (2024) ‘Multi-Criteria Framework for Routing on Access Land: A Case Study on Dartmoor National Park’, ISPRS International Journal of Geo-Information, 13(4), p. 130. Available at: https://doi.org/10.3390/ijgi13040130. 
+
+Stutz, P. et al. (2025) ‘Walkability at Street Level: An Indicator-Based Assessment Model’, Sustainability, 17(8), p. 3634. Available at: https://doi.org/10.3390/su17083634. 
+
+Tompson, L., Partridge, H. and Shepherd, N. (2009) ‘Hot Routes: Developing a New Technique for the Spatial Analysis of Crime’, 1(1), pp. 77–96. 
+
+Zaragosa, J.J.M. (2025) ‘Using Google Earth Engine to Find Barrier Against Wind Terrain using Wind Direction and Elevation’, Medium, 24 March. Available at: https://medium.com/@junjunzaragosa2309/using-google-earth-engine-to-find-barrier-against-wind-terrain-using-wind-direction-and-elevation-3c5b9fb45ad2 (Accessed: 26 April 2026). 
