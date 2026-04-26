@@ -12,9 +12,9 @@ book:
   repo-actions: [edit]
   downloads: [pdf, epub]
   sharing: [twitter, facebook]
-  favicon: favicon.ico
+  favicon: images/favicon.ico
   sidebar:
-    logo: casa_logo.png
+    logo: images/casa_logo.png
 
 format:
   html:
@@ -34,7 +34,7 @@ format:
       smooth_scroll: true
 
 website:
-  favicon: images/flavicon.png
+  favicon: images/favicon.png
   page-navigation: true
   site-url: "https://iiishop.github.io/Explore_walkability_across_london/"
   repo-url: "https://github.com/iiishop/CASA0025_Project"
