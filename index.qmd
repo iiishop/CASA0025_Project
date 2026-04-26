@@ -89,15 +89,67 @@ Replace the link below with the link to your application.
 
 ## How it Works
 
-### Everyone feels welcome
+### Indicator Precomputations
+
+**Everyone feels welcome**
 
 
+**Things to see and do & feeling safe**
 
-### Things to see and do & feeling safe
+The point-based scores are constructed using the “hot routes” approach that 
+plots point distributions on linear networks; the approach was originally 
+developed for crime analysis (Tompson, Partridge and Shepherd, 2009) to better represent 
+route-based concentrations. The [script](https://github.com/iiishop/CASA0025_Project/blob/main/composite_indicators_module/network_kde.py) 
+projects points onto street segments, then calculates the density of points based on the gaussian 
+kernel with distance decay, and finally normalises the segment point density by its length. The transformations can be described by the following formula:
+
+$$
+\Large
+\text{KDE}_{\text{segment}}
+=
+\frac{
+\sum_{i=1}^{n}
+e^{-0.5 \times \left(d_i / b\right)^2}
+}{
+\text{L}
+}
+$$
+
+Where:
+
+$$
+\begin{aligned}
+d_i &= \text{distance from point } i \text{ to street segment (meters)} \\
+b &= \text{bandwith, equals 100 meters in the code example} \\
+n &= \text{number of points within 100 m} \\
+L &= \text{street segment length (meters)}
+\end{aligned}
+$$
+
+::: {.scroll-container style="overflow-y: scroll; height: 300px; "}
+
+``` python
+# This is the concept used in the script, not the actual code. Please see the script using the link above to see other parameters of the function that we considered such as potential to add point weights, analyse several categories at ones etc.
+# Compute KDE score for a road segment from nearby points
+for _, point_row in candidates.iterrows():
+
+    dist = geom.distance(point_row.geometry)
+    if dist > bandwidth: # Ignore points outside bandwidth radius
+        continue
+    kernel_weight = _kde_weight(dist, bandwidth, kernel) # Kernel decay
+    kde_sum += kernel_weight # Accumulate contribution for segment
+
+kde_segment = kde_sum / segment_length # Normalize by segment length
+```
+:::
+<br>
+
+Each indicator (activity and safety) is aggregated through an unweighted l
+inear combination of two metrics, aggregated score is rescaled using min–max 
+normalization so that values fall within the predefined range [0,1].
 
 
-
-### Clean air & noise
+**Clean air & noise**
 
 ::: {.scroll-container style="overflow-y: scroll; height: 300px; "}
 
@@ -117,7 +169,9 @@ function computeBatchStats(roadsBatch) {
 ```
 :::
 
-### Shade and shelter
+**Shade and shelter**
+
+The scores were pre-computed with Google Earth Engine by applying `ee.Reducer.mean()` on the multi-band raster using the buffered street network.
 
 Use `Map.setCenter()` to move the map.
 

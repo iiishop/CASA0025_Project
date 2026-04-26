@@ -355,10 +355,7 @@ window.Quarto = {
   <li><a href="#the-application" id="toc-the-application" class="nav-link" data-scroll-target="#the-application">The Application</a></li>
   <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How it Works</a>
   <ul class="collapse">
-  <li><a href="#everyone-feels-welcome" id="toc-everyone-feels-welcome" class="nav-link" data-scroll-target="#everyone-feels-welcome">Everyone feels welcome</a></li>
-  <li><a href="#things-to-see-and-do-feeling-safe" id="toc-things-to-see-and-do-feeling-safe" class="nav-link" data-scroll-target="#things-to-see-and-do-feeling-safe">Things to see and do &amp; feeling safe</a></li>
-  <li><a href="#clean-air-noise" id="toc-clean-air-noise" class="nav-link" data-scroll-target="#clean-air-noise">Clean air &amp; noise</a></li>
-  <li><a href="#shade-and-shelter" id="toc-shade-and-shelter" class="nav-link" data-scroll-target="#shade-and-shelter">Shade and shelter</a></li>
+  <li><a href="#indicator-precomputations" id="toc-indicator-precomputations" class="nav-link" data-scroll-target="#indicator-precomputations">Indicator Precomputations</a></li>
   <li><a href="#network-graph-and-routing" id="toc-network-graph-and-routing" class="nav-link" data-scroll-target="#network-graph-and-routing">Network graph and routing</a></li>
   </ul></li>
   <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
@@ -515,14 +512,32 @@ w_{\text{length}} \cdot \text{length}_{\text{norm}} \\
 </section>
 <section id="how-it-works" class="level2">
 <h2 class="anchored" data-anchor-id="how-it-works">How it Works</h2>
-<section id="everyone-feels-welcome" class="level3">
-<h3 class="anchored" data-anchor-id="everyone-feels-welcome">Everyone feels welcome</h3>
-</section>
-<section id="things-to-see-and-do-feeling-safe" class="level3">
-<h3 class="anchored" data-anchor-id="things-to-see-and-do-feeling-safe">Things to see and do &amp; feeling safe</h3>
-</section>
-<section id="clean-air-noise" class="level3">
-<h3 class="anchored" data-anchor-id="clean-air-noise">Clean air &amp; noise</h3>
+<section id="indicator-precomputations" class="level3">
+<h3 class="anchored" data-anchor-id="indicator-precomputations">Indicator Precomputations</h3>
+<p><strong>Everyone feels welcome</strong></p>
+<p><strong>Things to see and do &amp; feeling safe</strong></p>
+<p>The point-based scores are constructed using the “hot routes” approach that plots point distributions on linear networks; the approach was originally developed for crime analysis (Tompson, Partridge and Shepherd, 2009) to better represent route-based concentrations. The <a href="https://github.com/iiishop/CASA0025_Project/blob/main/composite_indicators_module/network_kde.py">script</a> projects points onto street segments, then calculates the density of points based on the gaussian kernel with distance decay, and finally normalises the segment point density by its length.</p>
+<p><span class="math display">\[
+\Large
+\text{KDE}_{\text{segment}}
+=
+\frac{
+\sum_{i=1}^{n}
+e^{-0.5 \times \left(d_i / b\right)^2}
+}{
+\text{L}
+}
+\]</span></p>
+<p>Where:</p>
+<p><span class="math display">\[
+\begin{aligned}
+d_i &amp;= \text{distance from point } i \text{ to street segment (meters)} \\
+b &amp;= \text{bandwith, equals 100 meters in the code example} \\
+n &amp;= \text{number of points within 100 m} \\
+L &amp;= \text{street segment length (meters)}
+\end{aligned}
+\]</span></p>
+<p><strong>Clean air &amp; noise</strong></p>
 <div class="scroll-container" style="overflow-y: scroll; height: 300px; ">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode javascript code-with-copy"><code class="sourceCode javascript"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Run zonal stats for one batch</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">computeBatchStats</span>(roadsBatch) {</span>
@@ -537,9 +552,7 @@ w_{\text{length}} \cdot \text{length}_{\text{norm}} \\
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  })<span class="op">;</span></span>
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-</section>
-<section id="shade-and-shelter" class="level3">
-<h3 class="anchored" data-anchor-id="shade-and-shelter">Shade and shelter</h3>
+<p><strong>Shade and shelter</strong></p>
 <p>Use <code>Map.setCenter()</code> to move the map.</p>
 <div class="scroll-container" style="overflow-y: scroll; height: 300px; ">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode javascript code-with-copy"><code class="sourceCode javascript"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
