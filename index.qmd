@@ -263,7 +263,7 @@ The application below illustrates the 2 core layers generated for "shade and she
 
 <iframe src='https://ee-panevauk1.projects.earthengine.app/view/sunwindshelter' width='100%' height='700px'></iframe>
 
-The NDVI was [computed](https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/backend/app/ndvi_service.py) with Sentine2 using the classic approach, and then aggregated into the combined score.
+The NDVI was [computed](https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/backend/app/ndvi_service.py) with Sentinel2 using the classic approach, and then aggregated into the combined score.
 
 #### Things to see and do & feeling safe
 
