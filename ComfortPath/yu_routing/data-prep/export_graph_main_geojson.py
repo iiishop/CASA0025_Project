@@ -5,20 +5,30 @@ Reads from data/main_graph.pkl and writes:
 - routing-web/static/network/tiles/*.geojson
 - routing-web/static/network/network_tiles_manifest.json
 
-Each segment carries penalty fields (higher = worse) so the overlay
-colour scale is consistent: green = good, red = bad.
+Most overlay variables use penalty fields where higher = worse:
+green = lower penalty / more comfortable, red = higher penalty / less comfortable.
+
+Street Activity is an overlay-only exception:
+- routing still uses activity_penalty = 1 - score_things_see_do
+- overlay uses activity_overlay_norm = score_things_see_do
+- for this layer, red highlights higher street activity / more things to see and do
 
 Penalty fields exported:
-walking_effort_penalty  — slope / walking effort
-safety_penalty          — inverse of feel-safe score
-activity_penalty        — inverse of things-to-see score
-shade_shelter_penalty   — inverse of score_shade_shelter_final
-air_penalty             — inverse of score_clean_air
-noise_penalty           — inverse of score_not_too_noisy
+walking_effort_penalty
+safety_penalty
+activity_penalty
+shade_shelter_penalty
+air_penalty
+noise_penalty
 
-Raw score fields also exported for tooltip display:
-score_feel_safe, score_things_see_do,
-score_shade_shelter_final, score_clean_air, score_not_too_noisy
+Raw / display scores exported:
+score_feel_safe
+score_things_see_do
+score_shade_shelter_final
+score_clean_air
+score_not_too_noisy
+
+Overlay-only hotspot field exported: activity_overlay_norm
 """
 
 import json
@@ -29,9 +39,11 @@ import geopandas as gpd
 import pandas as pd
 
 
-BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "data"
-STATIC_NETWORK_DIR = BASE_DIR / "routing-web" / "static" / "network"
+SCRIPT_DIR = Path(__file__).resolve().parent
+YU_ROUTING_DIR = SCRIPT_DIR.parent
+
+DATA_DIR = YU_ROUTING_DIR / "data"
+STATIC_NETWORK_DIR = YU_ROUTING_DIR / "routing-web" / "static" / "network"
 TILES_DIR = STATIC_NETWORK_DIR / "tiles"
 
 GRAPH_CACHE_PATH = DATA_DIR / "main_graph.pkl"
@@ -57,6 +69,7 @@ DISPLAY_COLUMNS = [
     "walking_effort_norm",
     "safety_norm",
     "activity_norm",
+    "activity_overlay_norm",
     "shade_shelter_norm",
     "air_norm",
     "noise_norm",
@@ -141,6 +154,15 @@ def build_display_gdf(graph) -> gpd.GeoDataFrame:
         gdf[penalty_col] = gdf[penalty_col].fillna(0.0)
         gdf[norm_col] = minmax_normalize(gdf[penalty_col])
 
+    # Overlay-only hotspot view for street activity.
+    # Keep routing activity_penalty/activity_norm unchanged, 
+    # but expose a direct display field so red highlights more things to see_do.
+    gdf["activity_overlay_norm"] = (
+        pd.to_numeric(gdf["score_things_see_do"], errors="coerce")
+        .fillna(0.0)
+        .clip(0.0, 1.0)
+    )
+
     keep_cols = [col for col in DISPLAY_COLUMNS if col in gdf.columns]
     return gdf[keep_cols].copy()
 
@@ -149,7 +171,7 @@ def build_manifest(gdf: gpd.GeoDataFrame, tile_index: dict) -> dict:
     variables = []
     for penalty_col, label, key, norm_col in VARIABLE_SPECS:
         series = gdf[penalty_col]
-        variables.append({
+        variable_entry = {
             "key": key,
             "label": label,
             "penalty_column": penalty_col,
@@ -158,7 +180,17 @@ def build_manifest(gdf: gpd.GeoDataFrame, tile_index: dict) -> dict:
             # Frontend may override if future UI/API supplies custom weights.
             "default_weight": 1.0,
             "has_variation": bool(float(series.max()) > float(series.min())),
-        })
+        }
+
+        if key == "activity":
+            variable_entry["label"] = "Street activity hotspot"
+            variable_entry["norm_column"] = "activity_overlay_norm"
+            variable_entry["value_semantics"] = (
+                "Overlay-only hotspot layer: higher values indicate more things to see and do. "
+                "Red highlights higher activity for this layer."
+            )
+
+        variables.append(variable_entry)
 
     return {
         "tile_size_deg": TILE_SIZE_DEG,
@@ -175,10 +207,14 @@ def build_manifest(gdf: gpd.GeoDataFrame, tile_index: dict) -> dict:
         # Defaults for initial overlay selection in UI
         "default_variables": ["walking_effort", "safety", "activity"],
         "overlay_scoring": {
-            "value_semantics": "penalty",
-            "direction": "higher_is_worse",
-            "formula": "sum(w_i * penalty_i_norm) / sum(w_i) over active variables",
+            "value_semantics": "mixed",
+            "direction": "higher values usually mean worse penalty, except Street Activity where higher means more activity",
+            "formula": "sum(w_i * overlay_i_norm) / sum(w_i) over active variables",
             "neutral_state": "if no active variables or denominator==0, score=null",
+            "activity_exception": (
+                "Most variables use penalty logic where red = worse / less comfortable."
+                "Street activity is an overlay-only exception: Red highlights more things to see and do."
+            ),
             "color_mapping": {
                 "green": "better",
                 "red": "worse",

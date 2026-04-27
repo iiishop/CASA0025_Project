@@ -6029,11 +6029,12 @@
     },
     {
       "key": "activity",
-      "label": "Street activity",
+      "label": "Street activity hotspot",
       "penalty_column": "activity_penalty",
-      "norm_column": "activity_norm",
+      "norm_column": "activity_overlay_norm",
       "default_weight": 1.0,
-      "has_variation": true
+      "has_variation": true,
+      "value_semantics": "Overlay-only hotspot layer: higher values indicate more things to see and do. Red highlights higher activity for this layer."
     },
     {
       "key": "shade_shelter",
@@ -6066,10 +6067,11 @@
     "activity"
   ],
   "overlay_scoring": {
-    "value_semantics": "penalty",
-    "direction": "higher_is_worse",
-    "formula": "sum(w_i * penalty_i_norm) / sum(w_i) over active variables",
+    "value_semantics": "mixed",
+    "direction": "higher values usually mean worse penalty, except Street Activity where higher means more activity",
+    "formula": "sum(w_i * overlay_i_norm) / sum(w_i) over active variables",
     "neutral_state": "if no active variables or denominator==0, score=null",
+    "activity_exception": "Most variables use penalty logic where red = worse / less comfortable.Street activity is an overlay-only exception: Red highlights more things to see and do.",
     "color_mapping": {
       "green": "better",
       "red": "worse"

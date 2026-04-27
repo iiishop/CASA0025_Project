@@ -420,8 +420,8 @@
         <strong>How to use</strong><br>
         1. Enter an origin / destination address and click "Search"<br>
         2. Or click "Use My Location" to set the origin automatically<br>
-        3. Adjust the steepness level to demonstrate personalised routing<br>
-        4. Once both points are set, click "Find Route"
+        3. Once both points are set, click "Find Route"<br>
+        4. Adjust the Slider to demonstrate personalised routing
       </div>
 
       <div class='section'>
@@ -437,7 +437,7 @@
             <span class='pref-slider-title'>Walking Effort</span>
             <span id='steepnessValue' class='pref-slider-value'></span>
           </div>
-          <input id='steepnessSlider' class='pref-slider' type='range' min='1' max='3' step='1' value='2' aria-label='Walking Effort' />
+          <input id='steepnessSlider' class='pref-slider' type='range' min='1' max='3' step='1' value='1' aria-label='Walking Effort' />
         </div>
 
         <div class='pref-slider-group'>
@@ -520,8 +520,8 @@
         <div class='overlay-gradient-wrap'>
           <div class='overlay-gradient-bar'></div>
           <div class='overlay-gradient-caption'>
-            <span>Green = more comfortable / lower penalty</span>
-            <span>Red = less comfortable / higher penalty</span>
+            <span>Most layers: Green = More Comfortable</span>
+            <span>Street Activity hotspot: Red = More things to see and do</span>
           </div>
         </div>
       </div>
@@ -545,7 +545,7 @@
             </div>
 
             <div class='overlay-variable-row'>
-              <label><input id='overlayStreetActivityCheck' type='checkbox' checked /> Street Activity</label>
+              <label><input id='overlayStreetActivityCheck' type='checkbox' checked /> Street Activity hotspot</label>
               <span id='overlayStreetActivityState' class='control-value'>yes</span>
             </div>
 
@@ -571,7 +571,7 @@
             <button id='hideOverlayBtn' type='button'>Hide Overlay</button>
           </div>
 
-          <div class='small-text'>Overlay depends on <code>/static/network/network_tiles_manifest.json</code> and <code>/static/network/tiles/*.geojson</code>. Colour uses equal-weight penalties unless you manually deselect variables.</div>
+          <div class='small-text'>Overlay depends on <code>/static/network/network_tiles_manifest.json</code> and <code>/static/network/tiles/*.geojson</code>.</div>
         </div>
       </div>
     </div>
@@ -713,7 +713,7 @@
         available: true
       },
       activity: {
-        fallbackLabel: 'Street activity',
+        fallbackLabel: 'Street activity hotspot',
         checkbox: overlayStreetActivityCheck,
         stateEl: overlayStreetActivityState,
         fallbackNormColumn: 'activity_norm',
@@ -1108,7 +1108,7 @@
       if (explicitSelectionCount === 0) {
         setStatus('Network overlay updated using all available variables with equal weights.');
       } else {
-        setStatus(`Network overlay updated using weighted mean of: ${activeConfig.map((i) => i.label).join(', ')}.`);
+        setStatus(`Network overlay updated using weighted mean of selected overlay values: ${activeConfig.map((i) => i.label).join(', ')}.`);
       }
     }
 
@@ -1175,9 +1175,9 @@
         londonBoundaryLayer = L.geoJSON(geojson, {
           pane: 'boundaryPane',
           style: {
-            color: '#7a7a7a',
-            weight: 1.2,
-            opacity: 0.5,
+            color: '#222222',
+            weight: 2,
+            opacity: 0.8,
             fill: false,
             interactive: false,
           }

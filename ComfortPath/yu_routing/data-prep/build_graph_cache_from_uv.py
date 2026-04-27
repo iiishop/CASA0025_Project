@@ -9,7 +9,7 @@ Main output:
 - data/main_graph.pkl
 
 Derived penalties (higher = worse, used by Dijkstra & overlay)
-  safety_penalty         = 1 - score_feel_safe
+  safety_penalty          = score_feel_safe
   activity_penalty        = 1 - score_things_see_do
   walking_effort_penalty  = 1 - score_walking_effort
   shade_shelter_penalty   = 1 - score_shade_shelter_final
