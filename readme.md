@@ -1,6 +1,6 @@
 # Comfort Path: Explore walkable streets across London  
 
-**See our work here:** [Explore the walkable streets]([INSERT LINK](https://iiishop.github.io/docs/index.html))  
+**See our work [here](https://iiishop.github.io/docs/index.html)** 
 
 ---
 
