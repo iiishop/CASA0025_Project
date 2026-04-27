@@ -1,7 +1,7 @@
 """
 Merge slope-derived walking-effort fields into Anna's final export gpkg.
 
-Methodology note:
+Note:
 - first try a geometry-derived segment key match in a strict form
 - then retry unmatched rows with a more relaxed geometry key
 - only if a very small mis-match remains, use aligned row-order as a final fallback
@@ -22,9 +22,17 @@ from sklearn.preprocessing import MinMaxScaler
 
 
 BASE_DIR = Path(__file__).resolve().parent
-ANNA_PATH = BASE_DIR / "anna" / "260422_roads_export_final_with_env.gpkg"
-OUR_PATH = BASE_DIR / "data" / "network_routing_input.gpkg"
-OUT_PATH = BASE_DIR / "anna" / "260422_roads_export_with_env_slope.gpkg"
+YU_ROUTING_DIR = BASE_DIR.parent
+DATA_DIR = YU_ROUTING_DIR / "data"
+BASE_DIR = Path(__file__).resolve().parent
+YU_ROUTING_DIR = BASE_DIR.parent
+DATA_DIR = YU_ROUTING_DIR / "data"
+ANNA_DIR = YU_ROUTING_DIR / "anna"
+
+ANNA_PATH = ANNA_DIR / "260422_roads_export_final_with_env.gpkg"
+OUR_PATH = DATA_DIR / "network_routing_input.gpkg"
+OUT_PATH = ANNA_DIR / "260422_roads_export_with_env_slope.gpkg"
+OUT_PATH = ANNA_DIR / "260422_roads_export_with_env_slope.gpkg"
 COMMON_CRS = "EPSG:27700"
 STRICT_ROUND_DIGITS = 3
 RELAXED_ROUND_DIGITS = 1

@@ -3,7 +3,7 @@ Build the final cached NetworkX graph from the routing-ready network.
 
 Inputs:
 - data/network_routing_input.gpkg
-- anna/260422_roads_export_with_env_slope.gpkg
+- anna/260422_roads_export_clean_canonical.gpkg
 
 Main output:
 - data/main_graph.pkl
@@ -29,13 +29,36 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
 
-BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "data"
+SCRIPT_DIR = Path(__file__).resolve().parent
+YU_ROUTING_DIR = SCRIPT_DIR.parent
+WORKSPACE_ROOT = YU_ROUTING_DIR.parents[2]
 
-NETWORK_PATH = DATA_DIR / "network_routing_input.gpkg"
+DATA_DIR = YU_ROUTING_DIR / "data"
+FALLBACK_DATA_DIR = WORKSPACE_ROOT / "data"
+ANNA_DIR = YU_ROUTING_DIR / "anna"
+FALLBACK_ANNA_DIR = WORKSPACE_ROOT / "anna"
+
+# Submission version convention:
+# scripts inside data-prep/ resolve project data from yu_routing/
+# the outer workspace root is used only as a conservative local fallback
+
+
+def first_existing_path(*candidates: Path) -> Path:
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
+
+NETWORK_PATH = first_existing_path(
+    DATA_DIR / "network_routing_input.gpkg",
+    FALLBACK_DATA_DIR / "network_routing_input.gpkg",
+)
 NETWORK_LAYER = "network_routing_input"
 GRAPH_CACHE_PATH = DATA_DIR / "main_graph.pkl"
-ANNA_SCORES_PATH = BASE_DIR / "anna" / "260422_roads_export_clean_canonical.gpkg"
+ANNA_SCORES_PATH = first_existing_path(
+    ANNA_DIR / "260422_roads_export_clean_canonical.gpkg",
+    FALLBACK_ANNA_DIR / "260422_roads_export_clean_canonical.gpkg",
+)
 
 FOOTPATH_TYPES = {"footway", "path", "pedestrian", "steps"}
 FOOTPATH_PENALTY = 1.08

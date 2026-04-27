@@ -39,13 +39,30 @@ import pandas as pd
 import rasterio
 
 
-BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "data"
+SCRIPT_DIR = Path(__file__).resolve().parent
+YU_ROUTING_DIR = SCRIPT_DIR.parent
+WORKSPACE_ROOT = YU_ROUTING_DIR.parents[2]
+
+DATA_DIR = YU_ROUTING_DIR / "data"
+FALLBACK_DATA_DIR = WORKSPACE_ROOT / "data"
 
 
-roads_path = DATA_DIR / "roads_data_full_version.gpkg"
+def first_existing_path(*candidates: Path) -> Path:
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
+
+
+roads_path = first_existing_path(
+    DATA_DIR / "roads_data_full_version.gpkg",
+    FALLBACK_DATA_DIR / "roads_data_full_version.gpkg",
+)
 roads_layer = "roads_data_full"
-dem_path = DATA_DIR / "london_dem.tif"
+dem_path = first_existing_path(
+    DATA_DIR / "london_dem.tif",
+    FALLBACK_DATA_DIR / "london_dem.tif",
+)
 output_path = DATA_DIR / "network_full_with_slope.gpkg"
 output_layer = "network_full_with_slope"
 geojson_output_path = DATA_DIR / "network_full_with_slope.geojson"

@@ -1,181 +1,83 @@
-# Walking Routing Prototype
+# CASA0025 `yu_routing` module
 
-This project is a walking routing prototype for London.
-It combines an OpenStreetMap-based walking network, DEM-derived slope, a NetworkX graph, a Flask backend, and a Leaflet frontend.
+This folder contains Yu's routing/overlay prototype for the CASA0025 project.
 
-The current prototype can:
+It combines:
 
-- geocode origin and destination from typed addresses
+- an OpenStreetMap-derived walking network
+- DEM-based slope enrichment
+- a cached NetworkX graph for routing
+- a Flask backend
+- a Leaflet frontend with route comparison and network overlay visualisation
+
+This README is written for the **submission version** located at:
+
+`D:\casa0025_slope\CASA0025_Project\ComfortPath\yu_routing`
+
+---
+
+## 1. Folder structure
+
+```text
+yu_routing/
+  data/
+    main_graph.pkl
+  data-prep/
+    export_full_network_from_pbf.py
+    add_slope_to_network.py
+    prepare_routing_input.py
+    merge_slope_into_anna_export.py
+    export_clean_canonical_version.py
+    build_graph_cache_from_uv.py
+    export_graph_main_geojson.py
+    verify_graph_mcdm.py
+  routing-web/
+    app.py
+    routing.py
+    templates/index.html
+    static/network/
+      network_tiles_manifest.json
+      london_boundary.geojson
+      tiles/*.geojson
+  requirements.txt
+  README.md
+```
+
+---
+
+## 2. What the app does
+
+The current web prototype can:
+
+- geocode typed origin and destination addresses
 - use browser geolocation for the origin
-- allow manual map click selection
-- return a Shortest Route and a Personalised Route
-- demonstrate a simple user preference control through a **steepness slider**
+- compute a Shortest Route and a Personalised Route
+- expose user preference sliders
+- display a tiled network overlay in Leaflet
 
+The app is designed to run locally with pre-generated runtime files.
 
-## 1. Main workflow
+---
 
-The main processing workflow is:
+## 3. Runtime files expected by the web app
 
-1. extract the base walkable road network from OSM/PBF
-2. add slope information from the DEM
-3. filter and prepare the final routing input network
-4. build and cache the main NetworkX graph
-5. run the Flask + Leaflet routing prototype
-
-
-## 2. Core Python files
-
-These are the main Python files that should be kept in a clean submission.
-
-### `export_full_network_from_pbf.py`
-This script extracts the initial road network from the Greater London OSM PBF file.
-
-What it does:
-
-- loads the `.osm.pbf` extract with `pyrosm`
-- keeps a broad walkable network
-- preserves useful attributes such as `fclass`, `foot`, `sidewalk`, `service`, `u`, and `v`
-- exports the canonical base road dataset
-
-Main output:
-
-- `data/roads_data_full_version.gpkg`
-
-
-### `add_slope_to_network.py`
-This script adds elevation and slope information to the base road network.
-
-What it does:
-
-- loads `data/roads_data_full_version.gpkg`
-- samples elevation from `data/london_dem.tif`
-- calculates start elevation, end elevation, elevation difference, and `slope_pct`
-- classifies slope into categories such as easy / moderate / steep / unknown
-
-Main output:
-
-- `data/network_full_with_slope.gpkg`
-
-
-### `prepare_routing_input.py`
-This script prepares the slope-enriched network for routing.
-
-What it does:
-
-- loads `data/network_full_with_slope.gpkg`
-- filters the network based on walkability rules
-- keeps roads, footways, suitable paths, selected service roads, and shared cycleways
-- adds `routing_reason` and `include_in_routing`
-- exports the final network that is actually used for routing
-
-Main output:
-
-- `data/network_routing_input.gpkg`
-
-
-### `build_graph_cache_from_uv.py`
-This script builds the final graph used by the web app.
-
-What it does:
-
-- loads `data/network_routing_input.gpkg`
-- creates a NetworkX graph from `u` & `v` node pairs
-- stores edge attributes such as length, slope, edge type, and precomputed costs
-- keeps the largest connected component only
-- saves the graph as a cache file for fast loading in Flask
-
-Main output:
+The Flask app and frontend expect these local files to exist:
 
 - `data/main_graph.pkl`
+- `routing-web/static/network/network_tiles_manifest.json`
+- `routing-web/static/network/tiles/*.geojson`
 
+The overlay view may also use:
 
-### `routing-web/app.py`
-This is the Flask backend.
+- `routing-web/static/network/london_boundary.geojson`
 
-What it does:
+If these files are already present locally, the app can run without re-running the full preprocessing pipeline.
 
-- loads the cached graph from `data/main_graph.pkl`
-- handles `/geocode`, `/reverse_geocode`, and `/route`
-- snaps origin and destination to the nearest graph node
-- computes both the shortest route and the personalised route
-- returns routes and route statistics to the frontend
+---
 
+## 4. Run the app locally
 
-### `routing-web/routing.py`
-This file contains the main routing logic.
-
-What it does:
-
-- defines graph-building utilities
-- defines edge cost logic
-- builds a personalised cost function
-- computes shortest paths using NetworkX
-
-
-## 3. Current routing logic
-
-### Shortest Route
-The shortest route is based mainly on total distance, with a very small penalty for footpaths.
-
-In simple terms:
-
-`cost_shortest = length_m × type_factor`
-
-
-### Personalised Route
-The personalised route uses the same base distance logic but adds an uphill slope penalty.
-
-In simple terms:
-
-`personalised cost = length_m × type_factor × slope_penalty`
-
-The steepness slider in the frontend changes how strong the slope penalty is.
-
-Current slider mapping:
-
-- `1` → lower slope sensitivity
-- `2` → medium slope sensitivity
-- `3` → higher slope sensitivity
-
-Crime and noise are currently placeholders only.
-
-
-## 4. Main data files in the workflow
-
-These four files represent the main data pipeline:
-
-- `data/roads_data_full_version.gpkg`  
-  Base road network extracted from OSM/PBF
-
-- `data/network_full_with_slope.gpkg`  
-  Base road network after adding slope information from the DEM
-
-- `data/network_routing_input.gpkg`  
-  Cleaned and filtered routing-ready network
-
-- `data/main_graph.pkl`  
-  Final cached NetworkX graph used directly by the Flask app
-
-
-## 5. Data source note
-
-- **Road network**: OpenStreetMap / Geofabrik Greater London extract
-- **Elevation data**: SRTM-based DEM (`data/london_dem.tif`)
-
-
-## 6. Files that are now outdated or optional
-
-These files are not part of the main submission workflow anymore:
-
-- `build_graph_cache.py` → replaced by `build_graph_cache_from_uv.py`
-- `export_full_network.py` → replaced by `export_full_network_from_pbf.py`
-- `test_graph_cache.py` → test only
-- `test_osmnx_london_graph.py` → test only
-
-
-## 7. Running the web prototype
-
-From the project root:
+From the `yu_routing/` root:
 
 ```bash
 python routing-web/app.py
@@ -187,23 +89,74 @@ Then open:
 http://127.0.0.1:5000
 ```
 
+---
 
-## 8. GitHub submitted files
+## 5. Main preprocessing pipeline
 
-### Keep in the repo
+The intended preprocessing order is:
 
-- `export_full_network_from_pbf.py`
-- `add_slope_to_network.py`
-- `prepare_routing_input.py`
-- `build_graph_cache_from_uv.py`
-- `routing-web/app.py`
-- `routing-web/routing.py`
-- `routing-web/templates/index.html`
-- `README.md`
-- `requirements.txt`
+1. `data-prep/export_full_network_from_pbf.py`
+2. `data-prep/add_slope_to_network.py`
+3. `data-prep/prepare_routing_input.py`
+4. `data-prep/merge_slope_into_anna_export.py`
+5. `data-prep/export_clean_canonical_version.py`
+6. `data-prep/build_graph_cache_from_uv.py`
+7. `data-prep/export_graph_main_geojson.py`
 
+These scripts prepare the network, build the cached graph, and export the static overlay tiles used by the frontend.
 
-## 9. Environment note
+---
 
-This project uses GIS-heavy Python packages such as `geopandas`, `rasterio`, `pyproj`, and `pyrosm`.
-In practice, these are often easier to install in a Conda environment than in a plain pip-only environment.
+## 6. Important local-data note
+
+Some large files used by preprocessing are local-only and may not be committed to GitHub.
+
+Examples include:
+
+- `anna/*.gpkg`
+- the Greater London OSM/PBF extract
+- `data/london_dem.tif`
+- generated files such as `data/main_graph.pkl`
+- generated overlay assets under `routing-web/static/network/`
+
+Therefore:
+
+- the **web app may still run locally** if generated runtime files already exist
+- the **full preprocessing workflow should not be described as one-command reproducible from a clean clone** unless the required local input files are also present
+
+In particular, if Anna's local GPKG files are missing, several preprocessing steps cannot be re-run.
+
+---
+
+## 7. Key files
+
+### `routing-web/app.py`
+Flask backend entry point. Loads the cached graph and exposes `/geocode`, `/reverse_geocode`, and `/route`.
+
+### `routing-web/routing.py`
+Contains the graph/routing utilities used by the Flask app.
+
+### `routing-web/templates/index.html`
+Leaflet frontend for route display, preferences, basemap switching, and manifest-driven overlay loading.
+
+### `data-prep/build_graph_cache_from_uv.py`
+Builds the final cached NetworkX graph used by the app.
+
+### `data-prep/export_graph_main_geojson.py`
+Exports the static tiled overlay and manifest used by the frontend overlay view.
+
+---
+
+## 8. Environment note
+
+This module uses GIS-heavy Python packages such as:
+
+- `geopandas`
+- `rasterio`
+- `pyproj`
+- `pyrosm`
+
+In practice, these are often easier to install in a Conda-based environment than in a minimal pip-only environment.
+
+See `requirements.txt` for the package list.
+

@@ -310,28 +310,6 @@
       align-items: center;
     }
 
-    .overlay-legend {
-      margin-top: 8px;
-    }
-
-    .overlay-legend-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 4px;
-    }
-
-    .overlay-chip {
-      display: inline-block;
-      width: 18px;
-      height: 4px;
-      border-radius: 2px;
-    }
-
-    .overlay-chip-gradient {
-      background: linear-gradient(90deg, #2e7d32 0%, #f9a825 50%, #c62828 100%);
-    }
-
     .overlay-gradient-wrap {
       margin-top: 8px;
       width: 100%;
@@ -343,13 +321,6 @@
       border-radius: 999px;
       background: linear-gradient(90deg, #2e7d32 0%, #f1d04b 52%, #bf3030 100%);
       border: 1px solid rgba(0, 0, 0, 0.08);
-    }
-
-    .overlay-gradient-label {
-      margin-top: 4px;
-      font-size: 12px;
-      color: #555;
-      text-align: center;
     }
 
     .basemap-switcher {
@@ -633,19 +604,6 @@
     let overlayVisible = false;
     let lastVisibleTileKey = '';
 
-    const shortestStyle = {
-      color: '#1565c0',
-      weight: 6,
-      opacity: 0.9
-    };
-
-    const easiestStyle = {
-      color: '#2e7d32',
-      weight: 6,
-      opacity: 0.9,
-      dashArray: '10, 8'
-    };
-
     map.createPane('boundaryPane');
     map.getPane('boundaryPane').style.zIndex = 350;
 
@@ -774,22 +732,6 @@
       if (valueEl) {
         valueEl.textContent = '';
       }
-    }
-
-    function updatePreferenceUI() {
-      const sliderPairs = [
-        [steepnessSlider, steepnessValue],
-        [crimeSlider, crimeValue],
-        [streetActivitySlider, streetActivityValue],
-        [shadeSlider, shadeValue],
-        [airSlider, airValue],
-        [noiseSlider, noiseValue]
-      ];
-
-      sliderPairs.forEach(([slider, valueEl]) => {
-        if (!slider) return;
-        updateSingleSliderUI(slider, valueEl);
-      });
     }
 
     function initPreferenceSliders() {
@@ -1152,16 +1094,6 @@
     function bringRoutesToFront() {
       bringFeatureGroupToFront(shortestLayer);
       bringFeatureGroupToFront(easiestLayer);
-    }
-
-    async function initializeDefaultOverlay() {
-      try {
-        await loadOverlayManifest();
-        await renderNetworkOverlay();
-      } catch (error) {
-        console.warn('Overlay depends on static assets at /static/network/network_tiles_manifest.json and /static/network/tiles/*.geojson', error);
-        setStatus(`Overlay unavailable: ${error.message}`, true);
-      }
     }
 
     async function loadLondonBoundary() {

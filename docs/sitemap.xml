@@ -1,39 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://maheer-maps.github.io/CASA25_Rasternauts/readme.html</loc>
-    <lastmod>2026-04-13T13:41:13.676Z</lastmod>
-  </url>
-  <url>
-    <loc>https://maheer-maps.github.io/CASA25_Rasternauts/composite_indicators_module/road_sections_synthesis.html</loc>
-    <lastmod>2026-04-22T22:09:00.012Z</lastmod>
-  </url>
-  <url>
-    <loc>https://maheer-maps.github.io/CASA25_Rasternauts/index.html</loc>
-    <lastmod>2026-04-25T19:26:34.601Z</lastmod>
-  </url>
-  <url>
-    <loc>https://iiishop.github.io/CASA0025_Project/index.html</loc>
-    <lastmod>2026-04-25T19:42:57.050Z</lastmod>
+    <loc>https://iiishop.github.io/Explore_walkability_across_london/slides.html</loc>
+    <lastmod>2026-04-27T21:43:22.555Z</lastmod>
   </url>
   <url>
     <loc>https://iiishop.github.io/Explore_walkability_across_london/index.html</loc>
-    <lastmod>2026-04-27T20:38:14.935Z</lastmod>
-  </url>
-  <url>
-    <loc>https://iiishop.github.io/Explore_walkability_across_london/composite_indicators_module/solar_position_calculation.html</loc>
-    <lastmod>2026-04-26T14:53:30.649Z</lastmod>
-  </url>
-  <url>
-    <loc>https://iiishop.github.io/Explore_walkability_across_london/readme.html</loc>
-    <lastmod>2026-04-26T19:24:10.028Z</lastmod>
+    <lastmod>2026-04-27T21:47:19.486Z</lastmod>
   </url>
   <url>
     <loc>https://iiishop.github.io/Explore_walkability_across_london/composite_indicators_module/road_sections_synthesis.html</loc>
-    <lastmod>2026-04-27T17:07:18.205Z</lastmod>
+    <lastmod>2026-04-27T21:43:22.426Z</lastmod>
   </url>
   <url>
-    <loc>https://iiishop.github.io/Explore_walkability_across_london/slides.html</loc>
-    <lastmod>2026-04-27T21:06:35.122Z</lastmod>
+    <loc>https://iiishop.github.io/Explore_walkability_across_london/composite_indicators_module/solar_position_calculation.html</loc>
+    <lastmod>2026-04-27T03:27:50.522Z</lastmod>
+  </url>
+  <url>
+    <loc>https://iiishop.github.io/Explore_walkability_across_london/readme.html</loc>
+    <lastmod>2026-04-27T03:27:50.558Z</lastmod>
   </url>
 </urlset>

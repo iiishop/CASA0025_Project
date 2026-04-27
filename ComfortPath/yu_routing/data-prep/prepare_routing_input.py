@@ -38,7 +38,8 @@ import pandas as pd
 
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "data"
+YU_ROUTING_DIR = BASE_DIR.parent
+DATA_DIR = YU_ROUTING_DIR / "data"
 
 
 INPUT_PATH = DATA_DIR / "network_full_with_slope.gpkg"

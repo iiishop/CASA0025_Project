@@ -82,14 +82,28 @@ $$
 On load the map is showing the default walkability scores plotted. 
 The panel on the left features sliders that allow the user to select their individual preferences; origin-destination block is below. 
 After the preferences and the locations are set, the application is showing two routes: shortest and preferred. As the preferences change, the routes and the general walkability map are changed interactively.
+For most layers, green indicates more comfortable streets and red indicates less comfortable streets. Street Activity is treated as a hotspot layer, where red highlights more things to see and do.
 
-## The Application 
+## The Application
+
+The interactive prototype allows users to compare the shortest route with a personalised route, adjust walking-comfort preferences, and explore the network-wide walkability overlay.
 
 :::{.column-page}
 
-<iframe src='https://ollielballinger.users.earthengine.app/view/turkey-earthquake' width='100%' height='700px'></iframe>
+```{=html}
+<div style="width:100%; height:850px; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.18);">
+  <iframe
+    src="https://ysrei240-comfort-path-final.hf.space"
+    width="100%"
+    height="850"
+    style="border:0;"
+    allow="geolocation"
+  ></iframe>
+</div>
+```
 
 :::
+
 
 ## How it Works
 

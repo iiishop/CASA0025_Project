@@ -1,11 +1,27 @@
+"""
+Export a clean canonical Anna score file for downstream graph building.
+
+This script belongs to the yu_routing submission module and resolves inputs
+relative to the yu_routing/ directory rather than the outer local workspace.
+
+Required local input (not tracked in Git):
+- anna/260422_roads_export_with_env_slope.gpkg
+
+Main output:
+- anna/260422_roads_export_clean_canonical.gpkg
+"""
+
 from pathlib import Path
 import geopandas as gpd
 
-# paths
-INPUT_PATH = Path(r"D:\casa0025_slope\anna\260422_roads_export_with_env_slope.gpkg")
-OUTPUT_PATH = Path(r"D:\casa0025_slope\anna\260422_roads_export_clean_canonical.gpkg")
+SCRIPT_DIR = Path(__file__).resolve().parent
+YU_ROUTING_DIR = SCRIPT_DIR.parent
+ANNA_DIR = YU_ROUTING_DIR / "anna"
 
-#columns to keep
+INPUT_PATH = ANNA_DIR / "260422_roads_export_with_env_slope.gpkg"
+OUTPUT_PATH = ANNA_DIR / "260422_roads_export_clean_canonical.gpkg"
+
+# columns to keep
 KEEP_COLS = [
     "osm_id",
     "score_feel_safe",
