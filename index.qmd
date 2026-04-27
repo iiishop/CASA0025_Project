@@ -2,7 +2,7 @@
 title-block-banner: images/Sequence01_4-ezgif.com-optimize.gif
 title: "Comfort Path: Explore walkable streets across London"
 css:
-    - docs/style.css
+    - styles.css
 ---
 
 ## Project Summary 
