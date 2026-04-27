@@ -34,7 +34,7 @@ format:
       smooth_scroll: true
 
 website:
-  favicon: images/favicon.png
+  favicon: images/flavicon.png
   page-navigation: true
   site-url: "https://iiishop.github.io/Explore_walkability_across_london/"
   repo-url: "https://github.com/iiishop/CASA0025_Project"
