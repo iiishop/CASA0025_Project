@@ -937,7 +937,7 @@
       }
 
       if (totalWeight <= 0) {
-        return null;
+        return 0.5;
       }
 
       return weightedSum / totalWeight;
@@ -945,7 +945,7 @@
 
     function scoreToColor(score) {
       if (score === null || score === undefined || !Number.isFinite(Number(score))) {
-        return '#9e9e9e';
+        score = 0.5;
       }
 
       const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -985,11 +985,10 @@
     function buildOverlayStyleFunction(activeConfig) {
       return function(feature) {
         const score = computeOverlayScore(feature?.properties || {}, activeConfig);
-        const isNeutral = score === null;
         return {
           color: scoreToColor(score),
           weight: 3,
-          opacity: isNeutral ? 0.45 : 0.85,
+          opacity: 0.85,
           lineCap: 'round',
           lineJoin: 'round',
           interactive: false
