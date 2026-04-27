@@ -1,0 +1,9 @@
+{
+"type": "FeatureCollection",
+"name": "tile_33_17",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "osm_id": 244947650, "u": "2522167535", "v": "2522167536", "length_m": 139.02473208698535, "slope_score": 1.4385929539131461, "crime_score": 0.0, "air_score": 0.0, "shade_score": 0.0, "wind_score": 0.0, "noise_score": 0.0, "street_activity_score": 0.0, "traffic_score": 0.0, "slope_score_norm": 0.0359737249034464, "crime_score_norm": 0.0, "air_score_norm": 0.0, "shade_score_norm": 0.0, "wind_score_norm": 0.0, "noise_score_norm": 0.0, "street_activity_score_norm": 0.0, "traffic_score_norm": 0.0, "edge_type": "footpath", "display_type": "footpath", "fclass": "footway", "name": null }, "geometry": { "type": "LineString", "coordinates": [ [ 0.169179692864418, 51.625804901123047 ], [ 0.168927401304244, 51.627044677734368 ] ] } },
+{ "type": "Feature", "properties": { "osm_id": 244947650, "u": "2522167536", "v": "2522167537", "length_m": 82.311370466116088, "slope_score": 2.4297979594730603, "crime_score": 0.0, "air_score": 0.0, "shade_score": 0.0, "wind_score": 0.0, "noise_score": 0.0, "street_activity_score": 0.0, "traffic_score": 0.0, "slope_score_norm": 0.060759982959235674, "crime_score_norm": 0.0, "air_score_norm": 0.0, "shade_score_norm": 0.0, "wind_score_norm": 0.0, "noise_score_norm": 0.0, "street_activity_score_norm": 0.0, "traffic_score_norm": 0.0, "edge_type": "footpath", "display_type": "footpath", "fclass": "footway", "name": null }, "geometry": { "type": "LineString", "coordinates": [ [ 0.168927401304244, 51.627044677734368 ], [ 0.169219806790352, 51.627761840820305 ] ] } }
+]
+}
