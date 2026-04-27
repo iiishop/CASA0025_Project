@@ -374,10 +374,12 @@ window.Quarto = {
 <h2 class="anchored" data-anchor-id="project-summary">Project Summary</h2>
 <p>Our project enables a wide range of users to analyse the walkability of London’s streets and explore specific routes. Rather than imposing a single definition, the application allows users to apply their own walkability criteria.</p>
 <p>To support this, we break walkability down into a set of pre-computed parameters for each street segment. Users can then assign their own weights to these parameters based on what matters most to them. These user-defined weights are incorporated into a modified cost function within Dijkstra’s algorithm, enabling the system to compute the most suitable route according to each individual’s preferences.</p>
+<hr>
 <section id="problem-statement" class="level3">
 <h3 class="anchored" data-anchor-id="problem-statement">Problem Statement</h3>
 <p>There are a number of parameters influencing walking comfort; these are widely discussed in literature (Labdaoui et al., 2021; Bartzokas-Tsiompras, Bakogiannis and Nikitas, 2023; Stutz et al., 2025), and some were integrated into the pedestrian routing applications. For example, <a href="https://shade-route.vercel.app/">ShadeRoute</a>, <a href="https://heal.openrouteservice.org/#/place/@8.685808181762697,49.41442144045737,15">Heal</a>, and <a href="https://green-paths.web.app/">Green Paths</a>, integrate % shade, weather, greenness, air quality and noise data indicators into the route-finding cost function.</p>
 <p>The products on the market rarely reflect the multifaceted nature of walkability as a concept, focussing on a few selected indicators. Comprehensive tools like <a href="https://www.healthystreets.com/maps/london">Healthy Streets Index</a> rely on fixed indicator weights and lack interactivity, which limits their ability to reflect individual preferences and definitions of walkability; our application addresses the issues above through a fully interactive London-based route-building prototype.</p>
+<hr>
 </section>
 <section id="end-user" class="level3">
 <h3 class="anchored" data-anchor-id="end-user">End User</h3>
@@ -386,6 +388,7 @@ window.Quarto = {
 <li><p><strong>Policy makers and built environment professionals</strong> require not only robust, evidence-based data to inform policies and interventions, but also the ability to adjust how walkability is defined, e.g.&nbsp;in response to outputs from community engagement. They also need to observe broader patterns, so street scores are displayed as an interactive overlay that updates as users toggle parameters.</p></li>
 <li><p><strong>The wider public</strong> benefits from tools that help identify optimal walking routes. By toggling parameters, users can tailor the route to their immediate needs. The application’s origin-destination module serves as a proof-of-concept, demonstrating how walkability criteria can be integrated into everyday route-planning tools.</p></li>
 </ul>
+<hr>
 </section>
 <section id="data" class="level3">
 <h3 class="anchored" data-anchor-id="data">Data</h3>
@@ -504,7 +507,6 @@ w_{\text{length}} \cdot \text{length}_{\text{norm}} \\
 </section>
 <section id="the-application" class="level2 page-columns page-full">
 <h2 class="anchored" data-anchor-id="the-application">The Application</h2>
-<p>Replace the link below with the link to your application.</p>
 <div class="column-page">
 <iframe src="https://ollielballinger.users.earthengine.app/view/turkey-earthquake" width="100%" height="700px">
 </iframe>

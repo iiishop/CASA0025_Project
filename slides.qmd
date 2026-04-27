@@ -7,59 +7,47 @@ css:
 
 ## Project Summary 
 
-Our project enables a wide range of users to analyse the walkability of London’s streets and explore specific routes. Rather than imposing a single definition, the application allows users to apply their own walkability criteria.
+Our project enables a wide range of users to analyse the walkability of London’s streets and 
+explore specific routes. Rather than imposing a single definition, the application allows users 
+to apply their own walkability criteria.
 
-To support this, we break walkability down into a set of pre-computed parameters for each street segment. Users can then assign their own weights to these parameters based on what matters most to them. These user-defined weights are incorporated into a modified cost function within Dijkstra’s algorithm, enabling the system to compute the most suitable route according to each individual’s preferences.
+To support this, we break walkability down into a set of pre-computed parameters for each street segment. 
+Users can then assign their own weights to these parameters based on what matters most to them. 
+These user-defined weights are incorporated into a modified cost function within Dijkstra’s algorithm, 
+enabling the system to compute the most suitable route according to each individual’s preferences.
 
 ---
 
 ### Problem Statement
 
-There are a number of parameters influencing walking comfort; these are widely discussed in literature (Labdaoui et al., 2021; Bartzokas-Tsiompras, Bakogiannis and Nikitas, 2023; Stutz et al., 2025), and some were integrated into the pedestrian routing applications. 
-For example, [ShadeRoute](https://shade-route.vercel.app/), [Heal](https://heal.openrouteservice.org/#/place/@8.685808181762697,49.41442144045737,15), and [Green Paths](https://green-paths.web.app/), integrate % shade, weather, greenness, air quality and noise data indicators into the route-finding cost function.
+:::: {.columns}
 
-The products on the market rarely reflect the multifaceted nature of walkability as a concept, focussing on a few selected indicators. 
-Comprehensive tools like [Healthy Streets Index](https://www.healthystreets.com/maps/london) rely on fixed indicator weights and lack interactivity, which limits their ability to reflect individual preferences and definitions of walkability; our application addresses the issues above through a fully interactive London-based route-building prototype.
+::: {.column width="33%"}
+![](images/heal.png){width=100%}
+:::
+
+::: {.column width="33%"}
+![](images/green_paths.png){width=100%}
+:::
+
+::: {.column width="33%"}
+![](images/healthy_streets.png){width=100%}
+:::
+
+::::
+
+**Why?** The apps on the market focus on a few selected indicators or are not interactive.
+
+**Who are the users?** Policy-makers and the general public.
 
 ---
 
-### End User
+### Data and Methodology
 
-We identified two main end user groups:
+![Approach to the indicators. Adapted from Healthy Streets' framework © Lucy Sanders](images/method_scores.png){style="max-height:500px; width:100%; object-fit:contain;" fig-align="left" .lightbox}
 
-* **Policy makers and built environment professionals** require not only robust, evidence-based data to inform policies and interventions, but also the ability to adjust how walkability is defined, e.g. in response to outputs from community engagement. They also need to observe broader patterns, so street scores are displayed as an interactive overlay that updates as users toggle parameters.
-
-* **The wider public** benefits from tools that help identify optimal walking routes. By toggling parameters, users can tailor the route to their immediate needs. The application’s origin-destination module serves as a proof-of-concept, demonstrating how walkability criteria can be integrated into everyday route-planning tools.
 
 ---
-
-### Data
-
-We  organised the data by walkability criteria that were used in calculations. 
-
-{{< accordion items='[
-{"header":"Everyone feels welcome","body":"**Slope steepness** as a proxy for the ease of walking for various groups, calculated from England 1m Composite DTM. Environment Agency copyright and/or database right 2022. All rights reserved. [Source](https://environment.data.gov.uk/dataset/562c9d56-7c2d-4d42-83bb-578d6e97a517)","collapsed":true},
-{"header":"Not too noisy","body":"**Road noise exposure** as a proxy for acoustic comfort © Crown copyright, Open Government Licence v3.0. [Source](https://environment.data.gov.uk/dataset/562c9d56-7c2d-4d42-83bb-578d6e97a517)","collapsed":true},
-{"header":"People feel safe","body":"**Safety from crime** represented with reported crime counts. Sourced using the Police API. Street-level crimes in the past year (2025) were added. UK Home Office via data.police.uk, OGL v3.0. [Source](https://data.police.uk/docs/) <br> 
-    **Safety from traffic** represented with counts of pedestrian collisions occurred 2023-26 (all injury levels). Several years ensure sufficient density of points. © TfL [Source](https://experience.arcgis.com/experience/f817ed4d14b7434584959384d560f1fc/page/Page)","collapsed":true},
-{"header":"Things to see and do","body":"**Street activity** represented by points of interest such as shops and services. The data for this research have been provided by the Geographic Data Service (GeoDS), a Smart Data Research UK Investment: ES/Z504464/1. [Source](https://data.geods.ac.uk/dataset/point-of-interest-data-for-the-united-kingdom) <br> 
-    **Richness of historic environment** represented with listed buildings as points. © Crown Copyright 2026. Contains Ordnance Survey data © Crown copyright and database right 2026. Released under OGL. [Source](https://opendata-historicengland.hub.arcgis.com/datasets/historicengland::listed-building-points/explore)","collapsed":true},
-{"header":"Clean air","body":"**Atmospheric emissions**, representing street-level air pollution – NO2, PM2.5, PM10. Greater London Authority (GLA), London Datastore. [Source](https://data.london.gov.uk/dataset/london-atmospheric-emissions-inventory-laei-2022-2lg5g/)","collapsed":true},
-{"header":
-    "Shade and shelter","body":"**Green space exposure**, represented by vegetation cover (NDVI) derived from Sentinel-2 COPERNICUS S2_SR_HARMONIZED GEE layer. Contains modified Copernicus Sentinel data (2023), processed via Google Earth Engine. [Source](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR_HARMONIZED) <br>
-    **Availability of shade**, represented by mean % of street covered by shade calculated from England 1m Composite DSM. Environment Agency copyright and/or database right 2022. All rights reserved. [Source](https://environment.data.gov.uk/dataset/562c9d56-7c2d-4d42-83bb-578d6e97a517). <br>
-    **Protection from wind**, represented by a combination of mean wind speed (m/s) at 10m and presence of barriers. Global Wind Atlas 3.0, a free, web-based application developed, owned and operated by the Technical University of Denmark (DTU). The Global Wind Atlas 3.0 is released in partnership with the World Bank Group, utilizing data provided by Vortex, using funding provided by the Energy Sector Management Assistance Program (ESMAP). For additional information: https://globalwindatlas.info. [Source](https://globalwindatlas.info/en/). Environment Agency copyright and/or database right 2022. All rights reserved. [Source](https://developers.google.com/earth-engine/datasets/catalog/UK_EA_ENGLAND_1M_TERRAIN_2022)", 
-    "collapsed":true},
-{"header":"Supporting data","body":"**Streets and pedestrian paths** acquired from OSM through Geofabrik. ©OpenStreetMap contributors <br>
-    **Boundaries of London** from [London Datastore](https://data.london.gov.uk/dataset/statistical-gis-boundary-files-for-london-20od9/). © Copyright 2026","collapsed":true}
-]' >}}
-<br>
-
-### Methodology
-
-To structure our analysis for London, we adopted the Healthy Streets’ framework, as it is endorsed by the Mayor of London and TfL. We picked quantifiable indicators (as opposed to survey and observation-based), and represented them with composite scores built with raster and point datasets.
-
-![Approach to the indicators. Adapted from Healthy Streets’ framework © Lucy Sanders](images/method_scores.png){width=100% fig-align="left" .lightbox}
 
 We transformed the scores into penalties, and applied them on a graph of walkable networks, which allowed continuous path search across the study area. Using these pre-calculated route-based penalties, the personalised routing cost is defined as a weighted, normalised, and additive cost function:
 
@@ -77,11 +65,15 @@ w_{\text{length}} \cdot \text{length}_{\text{norm}} \\
 \end{aligned}
 $$
 
+---
+
 ### Interface
 
 On load the map is showing the default walkability scores plotted. 
 The panel on the left features sliders that allow the user to select their individual preferences; origin-destination block is below. 
 After the preferences and the locations are set, the application is showing two routes: shortest and preferred. As the preferences change, the routes and the general walkability map are changed interactively.
+
+---
 
 ## The Application 
 
