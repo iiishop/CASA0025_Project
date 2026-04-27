@@ -9,7 +9,7 @@ Main output:
 - data/main_graph.pkl
 
 Derived penalties (higher = worse, used by Dijkstra & overlay)
-  safety_penalty         = 1 - score_feel_safe
+  safety_penalty          = score_feel_safe
   activity_penalty        = 1 - score_things_see_do
   walking_effort_penalty  = 1 - score_walking_effort
   shade_shelter_penalty   = 1 - score_shade_shelter_final
@@ -80,13 +80,13 @@ gdf["v"] = gdf["v"].astype("int64")
 if "slope_score" not in gdf.columns:
     gdf["slope_score"] = 0.0
 gdf["slope_score"] = pd.to_numeric(gdf["slope_score"], errors="coerce").fillna(0.0)
-# Compatibility-only slope normalisation fallback.
-# Compatibility-only slope normalisation fallback.
+
+# Compatibility only slope normalisation fallback.
 # This preserves the previous routing behaviour if the canonical raw field is absent.
 slope_scaler = MinMaxScaler()
 gdf["_walking_effort_penalty_from_slope"] = slope_scaler.fit_transform(gdf[["slope_score"]])
-# Inject Anna's canonical scores and derive penalties
-# Inject Anna's canonical scores and derive penalties
+
+#Inject Anna's canonical scores and derive penalties
 if ANNA_SCORES_PATH.exists():
     print("Loading Anna's canonical scores...")
     anna = gpd.read_file(ANNA_SCORES_PATH)
@@ -188,7 +188,7 @@ if ANNA_SCORES_PATH.exists():
     ).values
 
     # Penalties for Dijkstra cost and overlay colouring (higher = worse)
-    gdf["safety_penalty"] = 1.0 - gdf["score_feel_safe"]
+    gdf["safety_penalty"] = gdf["score_feel_safe"]
     gdf["activity_penalty"] = 1.0 - gdf["score_things_see_do"]
     gdf["walking_effort_penalty"] = 1.0 - gdf["score_walking_effort"]
     gdf["shade_shelter_penalty"] = 1.0 - gdf["score_shade_shelter_final"]

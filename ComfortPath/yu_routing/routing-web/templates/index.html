@@ -52,19 +52,20 @@
 
     .legend-line {
       display: inline-block;
-      width: 18px;
-      height: 4px;
+      width: 20px;
+      height: 8px;
       margin-right: 8px;
       vertical-align: middle;
-      border-radius: 2px;
+      border-radius: 999px;
+      border: 2px solid #111;
     }
 
     .shortest-line {
-      background: #1565c0;
+      background: #ffffff;
     }
 
     .easiest-line {
-      background: #2e7d32;
+      background: #00e5ff;
     }
 
     .input-group {
@@ -242,6 +243,33 @@
       color: #8a8f98;
     }
 
+    .pref-slider-scale-global {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 8px 0 14px 0;
+      padding: 0 2px;
+      font-size: 12px;
+      color: #6f7680;
+    }
+
+    .overlay-gradient-caption {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 6px;
+      font-size: 12px;
+      color: #555;
+    }
+
+    .overlay-gradient-caption span:first-child {
+      text-align: left;
+    }
+
+    .overlay-gradient-caption span:last-child {
+      text-align: right;
+    }
+
     .tab-row {
       display: flex;
       gap: 8px;
@@ -392,20 +420,24 @@
         <strong>How to use</strong><br>
         1. Enter an origin / destination address and click "Search"<br>
         2. Or click "Use My Location" to set the origin automatically<br>
-        3. Adjust the steepness level to demonstrate personalised routing<br>
-        4. Once both points are set, click "Find Route"
+        3. Once both points are set, click "Find Route"<br>
+        4. Adjust the Slider to demonstrate personalised routing
       </div>
 
       <div class='section'>
-        <strong>User Preferences</strong>
+        <strong>How important are the following to you?</strong>
+
+        <div class='preference-scale-row pref-slider-scale-global'>
+          <span>Less important</span>
+          <span>More important</span>
+        </div>
 
         <div class='pref-slider-group'>
           <div class='pref-slider-header'>
             <span class='pref-slider-title'>Walking Effort</span>
             <span id='steepnessValue' class='pref-slider-value'></span>
           </div>
-          <input id='steepnessSlider' class='pref-slider' type='range' min='1' max='3' step='1' value='2' aria-label='Walking Effort' />
-          <div class='pref-slider-scale'><span>Low</span><span>Medium</span><span>High</span></div>
+          <input id='steepnessSlider' class='pref-slider' type='range' min='1' max='3' step='1' value='1' aria-label='Walking Effort' />
         </div>
 
         <div class='pref-slider-group'>
@@ -414,16 +446,14 @@
             <span id='crimeValue' class='pref-slider-value'></span>
           </div>
           <input id='crimeSlider' class='pref-slider' type='range' min='1' max='3' step='1' value='1' aria-label='Safety' />
-          <div class='pref-slider-scale'><span>Low</span><span>Medium</span><span>High</span></div>
         </div>
 
         <div class='pref-slider-group'>
           <div class='pref-slider-header'>
-            <span class='pref-slider-title'>Comfortability</span>
+            <span class='pref-slider-title'>Thermal comfort</span>
             <span id='shadeValue' class='pref-slider-value'></span>
           </div>
-          <input id='shadeSlider' class='pref-slider' type='range' min='1' max='3' step='1' value='1' aria-label='Comfortability' />
-          <div class='pref-slider-scale'><span>Low</span><span>Medium</span><span>High</span></div>
+          <input id='shadeSlider' class='pref-slider' type='range' min='1' max='3' step='1' value='1' aria-label='Thermal comfort' />
         </div>
 
         <div class='pref-slider-group'>
@@ -432,7 +462,6 @@
             <span id='streetActivityValue' class='pref-slider-value'></span>
           </div>
           <input id='streetActivitySlider' class='pref-slider' type='range' min='1' max='3' step='1' value='1' aria-label='Street Activity' />
-          <div class='pref-slider-scale'><span>Low</span><span>Medium</span><span>High</span></div>
         </div>
 
         <div class='pref-slider-group'>
@@ -441,7 +470,6 @@
             <span id='airValue' class='pref-slider-value'></span>
           </div>
           <input id='airSlider' class='pref-slider' type='range' min='1' max='3' step='1' value='1' aria-label='Air Quality' />
-          <div class='pref-slider-scale'><span>Low</span><span>Medium</span><span>High</span></div>
         </div>
 
         <div class='pref-slider-group'>
@@ -450,7 +478,6 @@
             <span id='noiseValue' class='pref-slider-value'></span>
           </div>
           <input id='noiseSlider' class='pref-slider' type='range' min='1' max='3' step='1' value='1' aria-label='Quietness' />
-          <div class='pref-slider-scale'><span>Low</span><span>Medium</span><span>High</span></div>
         </div>
       </div>
 
@@ -492,7 +519,10 @@
       <div class='section'>
         <div class='overlay-gradient-wrap'>
           <div class='overlay-gradient-bar'></div>
-          <div class='overlay-gradient-label'>Low → High</div>
+          <div class='overlay-gradient-caption'>
+            <span>Most layers: Green = More Comfortable</span>
+            <span>Street Activity hotspot: Red = More things to see and do</span>
+          </div>
         </div>
       </div>
 
@@ -515,12 +545,12 @@
             </div>
 
             <div class='overlay-variable-row'>
-              <label><input id='overlayStreetActivityCheck' type='checkbox' checked /> Street Activity</label>
+              <label><input id='overlayStreetActivityCheck' type='checkbox' checked /> Street Activity hotspot</label>
               <span id='overlayStreetActivityState' class='control-value'>yes</span>
             </div>
 
             <div class='overlay-variable-row'>
-              <label><input id='overlayShadeCheck' type='checkbox' /> Shade &amp; shelter</label>
+              <label><input id='overlayShadeCheck' type='checkbox' /> Thermal comfort</label>
               <span id='overlayShadeState' class='control-value'>no</span>
             </div>
 
@@ -541,7 +571,7 @@
             <button id='hideOverlayBtn' type='button'>Hide Overlay</button>
           </div>
 
-          <div class='small-text'>Overlay colour uses weighted mean over active normalized penalty columns (current default weight = 1 per active variable).</div>
+          <div class='small-text'>Overlay depends on <code>/static/network/network_tiles_manifest.json</code> and <code>/static/network/tiles/*.geojson</code>.</div>
         </div>
       </div>
     </div>
@@ -574,6 +604,7 @@
       voyager:  'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
       standard: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
     };
+    const LONDON_BOUNDARY_URL = '/static/network/london_boundary.geojson';
     const CARTO_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
     const OSM_ATTR = '&copy; OpenStreetMap contributors';
 
@@ -594,6 +625,7 @@
 
     let shortestLayer = null;
     let easiestLayer = null;
+    let londonBoundaryLayer = null;
     let overlayManifest = null;
     let overlayTileCache = {};
     let overlayTileLayers = {};
@@ -613,6 +645,9 @@
       opacity: 0.9,
       dashArray: '10, 8'
     };
+
+    map.createPane('boundaryPane');
+    map.getPane('boundaryPane').style.zIndex = 350;
 
     const originInput = document.getElementById('originInput');
     const destinationInput = document.getElementById('destinationInput');
@@ -641,7 +676,9 @@
     const airValue = document.getElementById('airValue');
     const noiseValue = document.getElementById('noiseValue');
 
-    const PREFERENCE_BETA_MAP = { 1: 0.5, 2: 1.5, 3: 3.0 };
+    const PREFERENCE_BETA_MAP = { 1: 0.2, 2: 1.0, 3: 4.0 };
+    const OVERLAY_MANIFEST_URL = '/static/network/network_tiles_manifest.json';
+    const OVERLAY_TILES_BASE_URL = '/static/network/tiles';
     const overlaySlopeCheck = document.getElementById('overlaySlopeCheck');
     const overlayCrimeCheck = document.getElementById('overlayCrimeCheck');
     const overlayStreetActivityCheck = document.getElementById('overlayStreetActivityCheck');
@@ -676,14 +713,14 @@
         available: true
       },
       activity: {
-        fallbackLabel: 'Street activity',
+        fallbackLabel: 'Street activity hotspot',
         checkbox: overlayStreetActivityCheck,
         stateEl: overlayStreetActivityState,
         fallbackNormColumn: 'activity_norm',
         available: true
       },
       shade_shelter: {
-        fallbackLabel: 'Comfortability',
+        fallbackLabel: 'Thermal comfort',
         checkbox: overlayShadeCheck,
         stateEl: overlayShadeState,
         fallbackNormColumn: 'shade_shelter_norm',
@@ -822,11 +859,6 @@
     function applyOverlayAvailability(manifest) {
       overlayManifestVariablesByKey = toOverlayManifestMap(manifest);
       const hasManifestVariables = Object.keys(overlayManifestVariablesByKey).length > 0;
-      const defaultVariables = new Set(
-        Array.isArray(manifest?.default_variables) && manifest.default_variables.length
-          ? manifest.default_variables
-          : ['walking_effort']
-      );
 
       Object.entries(overlayControls).forEach(([key, control]) => {
         const manifestVariable = overlayManifestVariablesByKey[key];
@@ -842,7 +874,7 @@
           return;
         }
 
-        control.checkbox.checked = defaultVariables.has(key);
+        control.checkbox.checked = true;
       });
 
       updateOverlayControlUI();
@@ -879,7 +911,14 @@
     }
 
     function getActiveOverlayConfig() {
-      return getOverlayConfig().filter((item) => item.checkbox.checked && !item.checkbox.disabled);
+      const selected = getOverlayConfig().filter((item) => item.checkbox.checked && !item.checkbox.disabled);
+      if (selected.length > 0) {
+        return selected;
+      }
+
+      return getOverlayConfig()
+        .filter((item) => !item.checkbox.disabled)
+        .map((item) => ({ ...item, weight: 1.0 }));
     }
 
     function computeOverlayScore(properties, activeConfig) {
@@ -963,7 +1002,7 @@
         return overlayManifest;
       }
 
-      const response = await fetch('/static/network/network_tiles_manifest.json');
+      const response = await fetch(OVERLAY_MANIFEST_URL);
       if (!response.ok) {
         throw new Error('Failed to load overlay tile manifest');
       }
@@ -993,7 +1032,7 @@
         return overlayTileCache[tileId];
       }
 
-      const response = await fetch(`/static/network/tiles/${tileMeta.file}`);
+      const response = await fetch(`${OVERLAY_TILES_BASE_URL}/${tileMeta.file}`);
       if (!response.ok) {
         throw new Error(`Failed to load overlay tile: ${tileId}`);
       }
@@ -1003,9 +1042,9 @@
     }
 
     async function renderNetworkOverlay() {
-      const activeConfig = getActiveOverlayConfig();
-
       const manifest = await loadOverlayManifest();
+      const explicitSelectionCount = getOverlayConfig().filter((item) => item.checkbox.checked && !item.checkbox.disabled).length;
+      const activeConfig = getActiveOverlayConfig();
       const bounds = map.getBounds();
       const visibleTileIds = getVisibleTileIds(manifest, bounds);
 
@@ -1064,13 +1103,12 @@
       overlayVisible = true;
       lastVisibleTileKey = [...visibleTileIds].sort().join(',');
       overlayGroup.bringToBack();
-      if (shortestLayer?.bringToFront) shortestLayer.bringToFront();
-      if (easiestLayer?.bringToFront) easiestLayer.bringToFront();
+      bringRoutesToFront();
 
-      if (!activeConfig.length) {
-        setStatus('Network overlay updated in neutral state (no active variables selected).');
+      if (explicitSelectionCount === 0) {
+        setStatus('Network overlay updated using all available variables with equal weights.');
       } else {
-        setStatus(`Network overlay updated using weighted mean of: ${activeConfig.map((i) => i.label).join(', ')}.`);
+        setStatus(`Network overlay updated using weighted mean of selected overlay values: ${activeConfig.map((i) => i.label).join(', ')}.`);
       }
     }
 
@@ -1082,6 +1120,71 @@
       }
       overlayVisible = false;
       setStatus('Network overlay hidden.');
+    }
+
+    function createCasedRouteLayer(geojson, innerStyle) {
+      const outerLayer = L.geoJSON(geojson, {
+        style: {
+          color: '#111111',
+          weight: 10,
+          opacity: 0.95,
+          lineCap: 'round',
+          lineJoin: 'round'
+        }
+      });
+
+      const innerLayer = L.geoJSON(geojson, {
+        style: innerStyle
+      });
+
+      return L.featureGroup([outerLayer, innerLayer]).addTo(map);
+    }
+
+    function bringFeatureGroupToFront(group) {
+      if (!group?.eachLayer) return;
+      group.eachLayer((layer) => {
+        if (layer?.bringToFront) {
+          layer.bringToFront();
+        }
+      });
+    }
+
+    function bringRoutesToFront() {
+      bringFeatureGroupToFront(shortestLayer);
+      bringFeatureGroupToFront(easiestLayer);
+    }
+
+    async function initializeDefaultOverlay() {
+      try {
+        await loadOverlayManifest();
+        await renderNetworkOverlay();
+      } catch (error) {
+        console.warn('Overlay depends on static assets at /static/network/network_tiles_manifest.json and /static/network/tiles/*.geojson', error);
+        setStatus(`Overlay unavailable: ${error.message}`, true);
+      }
+    }
+
+    async function loadLondonBoundary() {
+      try {
+        const response = await fetch(LONDON_BOUNDARY_URL);
+        if (!response.ok) {
+          throw new Error('Boundary file not found');
+        }
+
+        const geojson = await response.json();
+        londonBoundaryLayer = L.geoJSON(geojson, {
+          pane: 'boundaryPane',
+          style: {
+            color: '#222222',
+            weight: 2,
+            opacity: 0.8,
+            fill: false,
+            interactive: false,
+          }
+        }).addTo(map);
+      } catch (error) {
+        console.warn(`London boundary unavailable: ${error.message}`);
+      }
     }
 
     async function refreshOverlayOnMove() {
@@ -1296,23 +1399,27 @@
 
         clearRouteLayers();
 
-        shortestLayer = L.geoJSON(result.shortest.geojson, {
-          style: shortestStyle
-        }).addTo(map);
+        shortestLayer = createCasedRouteLayer(result.shortest.geojson, {
+          color: '#ffffff',
+          weight: 5,
+          opacity: 1.0,
+          lineCap: 'round',
+          lineJoin: 'round'
+        });
 
-        easiestLayer = L.geoJSON(result.easiest.geojson, {
-          style: easiestStyle
-        }).addTo(map);
+        easiestLayer = createCasedRouteLayer(result.easiest.geojson, {
+          color: '#00e5ff',
+          weight: 5,
+          opacity: 1.0,
+          dashArray: '10, 8',
+          lineCap: 'round',
+          lineJoin: 'round'
+        });
 
         if (overlayVisible) {
           overlayGroup.bringToBack();
         }
-        if (shortestLayer && shortestLayer.bringToFront) {
-          shortestLayer.bringToFront();
-        }
-        if (easiestLayer && easiestLayer.bringToFront) {
-          easiestLayer.bringToFront();
-        }
+        bringRoutesToFront();
 
         const group = L.featureGroup([shortestLayer, easiestLayer]);
         const bounds = group.getBounds();
@@ -1442,8 +1549,20 @@
     locateBtn.addEventListener('click', locateUser);
     routeBtn.addEventListener('click', requestRoute);
     resetBtn.addEventListener('click', resetSelection);
-    navigatorTabBtn.addEventListener('click', () => switchPanel('navigator'));
-    overlayTabBtn.addEventListener('click', () => switchPanel('overlay'));
+    navigatorTabBtn.addEventListener('click', () => {
+      switchPanel('navigator');
+      hideNetworkOverlay();
+    });
+    overlayTabBtn.addEventListener('click', async () => {
+      switchPanel('overlay');
+      try {
+        setStatus('Loading static network overlay...');
+        await renderNetworkOverlay();
+      } catch (error) {
+        console.error(error);
+        setStatus(`Overlay loading failed: ${error.message}`, true);
+      }
+    });
     Object.values(overlayControls).forEach((control) => {
       control.checkbox.addEventListener('change', updateOverlayControlUI);
     });
@@ -1494,6 +1613,7 @@
     updateLocationTexts();
     updateOverlayControlUI();
     switchPanel('navigator');
+    loadLondonBoundary();
     setStatus('Enter addresses or use your location to choose origin and destination.');
   </script>
 </body>

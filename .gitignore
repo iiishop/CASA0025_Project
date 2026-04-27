@@ -74,3 +74,4 @@ composite_indicators_module/data
 
 /.quarto/
 **/*.quarto_ipynb
+ComfortPath/yu_routing/routing-web/static/
