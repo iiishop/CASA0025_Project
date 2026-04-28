@@ -116,7 +116,7 @@
     "href": "slides.html#network-graph",
     "title": "Comfort Path: Explore walkable streets across London",
     "section": "Network Graph",
-    "text": "Network Graph\nYu say here how did you approach building the network graph and why we chose OSM"
+    "text": "Network Graph\nHow did we build the network graph and why we chose OSM"
   },
   {
     "objectID": "slides.html#indicator-precomputations",
@@ -158,7 +158,7 @@
     "href": "slides.html#indicators-walking-effort",
     "title": "Comfort Path: Explore walkable streets across London",
     "section": "Indicators: Walking effort",
-    "text": "Indicators: Walking effort\nSlope was derived from a DEM by sampling the start and end points of each road segment and calculating the elevation difference relative to the segment length. This allowed each segment to be described not only by distance but also by the physical effort required to walk along it. The script for this part can be found here."
+    "text": "Indicators: Walking effort\nSlope was derived from a DEM (Shuttle Radar Topography Mission (SRTM GL1) Global 30m).\nThe script for this part can be found here."
   },
   {
     "objectID": "slides.html#building-the-application",

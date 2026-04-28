@@ -18,28 +18,6 @@ explore specific routes.
 
 ---
 
-## Problem Statement
-
-:::: {.columns}
-
-::: {.column width="33%"}
-![](images/heal.png){width=100%}
-:::
-
-::: {.column width="33%"}
-![](images/green_paths.png){width=100%}
-:::
-
-::: {.column width="33%"}
-![](images/healthy_streets.png){width=100%}
-:::
-
-::::
-
-**Why?** The apps on the market focus on a few selected indicators or are not interactive.
-
----
-
 ## Data and Methodology
 
 ![Approach to the indicators. Adapted from Healthy Streets' framework © Lucy Sanders](images/method_scores.png){style="max-height:500px; width:100%; object-fit:contain;" fig-align="left" .lightbox}
@@ -68,7 +46,11 @@ $$
 
 ## Network Graph
 
-Yu say here how did you approach building the network graph and why we chose OSM
+How did we build the network graph and why we chose OSM
+
+![](images/why_osm.jpeg)
+
+![](images/osm_to_graph.jpeg)
 
 ---
 
@@ -106,35 +88,6 @@ $$
 ::::
 
 GEE script using `ee.Terrain.hillShadow()` with England 1m DSM for sun and wind + mean wind speeds + mean surface temperature
-
----
-
-Solar position and shadow map
-
-``` python
-times = pd.date_range(start="2025-04-19 06:00", freq="1h", tz=timezone)
-# Calculate solar position
-solar = get_solarposition(time=times,latitude=lat,longitude=lon)
-daytime = solar[solar["apparent_elevation"] > 0] # Keep only daytime observations
-
-# Mean solar angles across the whole period
-mean_azimuth = daytime["azimuth"].mean()
-mean_zenith = daytime["apparent_zenith"].mean()
-```
-
-``` javascript
-var shadowMap = ee.Terrain.hillShadow({
-  image: londonDsmMerc,
-  azimuth: 180.02504604372402,
-  zenith: 62.63912040279354,
-  neighborhoodSize: 100,
-  hysteresis: false
-});
-// Generate the shadow map
-var londonShadow = shadowMap.eq(0).rename('shadow')// 1 = shadow, 0 = not shadow
-  .toFloat()
-  .setDefaultProjection(targetProj);
-```
 
 ---
 
@@ -290,33 +243,6 @@ $$
 
 ---
 
-### Outlier handling & normalisation
-
-``` python
-# Per-pollutant: NULL / <=0 / <= -9990 → missing
-valid = np.isfinite(val) and val != nodata and val > -9990
-
-# p5-p95 robust min-max to [0,1]
-p5, p95 = np.percentile(values, [5, 95])
-score = np.clip((arr - p5) / (p95 - p5), 0.0, 1.0)
-```
-
-### Weighted fusion
-
-``` python
-# Default weights
-weights = AirQualityWeights(no2=0.40, pm25=0.35, pm10=0.25)
-
-no2_n  = self._normalize("no2", no2)
-pm25_n = self._normalize("pm25", pm25)
-pm10_n = self._normalize("pm10", pm10)
-
-aq_score = (no2_n * weights.no2 + pm25_n * weights.pm25 +
-            pm10_n * weights.pm10) / (weights.no2 + weights.pm25 + weights.pm10)
-```
-
----
-
 ## Indicators: Noise
 
 Road traffic noise (Lden/Lday) was sampled at each road segment's midpoint from DEFRA 
@@ -337,19 +263,19 @@ indicate quieter streets. The routing engine uses score_not_too_noisy directly.
 
 ## Indicators: Walking effort
 
-Slope was derived from a DEM by sampling the start and end points of each road segment and calculating the 
-elevation difference relative to the segment length. This allowed each segment to be described not only 
-by distance but also by the physical effort required to walk along it. The script for this part can be found [here](https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/yu_routing/data-prep/add_slope_to_network.py).
+
+Slope was derived from a DEM (Shuttle Radar Topography Mission (SRTM GL1) Global 30m).
+
+The script for this part can be found [here](https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/yu_routing/data-prep/add_slope_to_network.py).
+
+![](images/walk effort function.jpeg){width=100%}
+
 
 ---
 
 ## Building the application
 
----
-
-## Website appearance
-
-![](images/website_appearance.gif){width=100%}
+![](images/deployment.jpeg){width=100%}
 
 ---
 

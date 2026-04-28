@@ -210,18 +210,6 @@
 
 <img data-src="images/application.png" style="width:100.0%" class="r-stretch"><p>Our project enables a wide range of users to analyse the walkability of London’s streets and explore specific routes.</p>
 </section>
-<section id="problem-statement" class="slide level2">
-<h2>Problem Statement</h2>
-<div class="columns">
-<div class="column" style="width:33%;">
-<p><img data-src="images/heal.png" style="width:100.0%"></p>
-</div><div class="column" style="width:33%;">
-<p><img data-src="images/green_paths.png" style="width:100.0%"></p>
-</div><div class="column" style="width:33%;">
-<p><img data-src="images/healthy_streets.png" style="width:100.0%"></p>
-</div></div>
-<p><strong>Why?</strong> The apps on the market focus on a few selected indicators or are not interactive.</p>
-</section>
 <section id="data-and-methodology" class="slide level2">
 <h2>Data and Methodology</h2>
 <div class="quarto-figure quarto-figure-left">
@@ -260,7 +248,9 @@
 </section>
 <section id="network-graph" class="slide level2">
 <h2>Network Graph</h2>
-<p>Yu say here how did you approach building the network graph and why we chose OSM</p>
+<p>How did we build the network graph and why we chose OSM</p>
+<p><img data-src="images/why_osm.jpeg"></p>
+<p><img data-src="images/osm_to_graph.jpeg"></p>
 </section>
 <section id="indicators-things-to-see-do-safety" class="slide level2">
 <h2>Indicators: Things to see &amp; do, Safety</h2>
@@ -288,90 +278,67 @@ e^{-0.5 \times \left(d_i / b\right)^2}
 </section>
 <section class="slide level2">
 
-<p>Solar position and shadow map</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a></a>times <span class="op">=</span> pd.date_range(start<span class="op">=</span><span class="st">"2025-04-19 06:00"</span>, freq<span class="op">=</span><span class="st">"1h"</span>, tz<span class="op">=</span>timezone)</span>
-<span id="cb1-2"><a></a><span class="co"># Calculate solar position</span></span>
-<span id="cb1-3"><a></a>solar <span class="op">=</span> get_solarposition(time<span class="op">=</span>times,latitude<span class="op">=</span>lat,longitude<span class="op">=</span>lon)</span>
-<span id="cb1-4"><a></a>daytime <span class="op">=</span> solar[solar[<span class="st">"apparent_elevation"</span>] <span class="op">&gt;</span> <span class="dv">0</span>] <span class="co"># Keep only daytime observations</span></span>
-<span id="cb1-5"><a></a></span>
-<span id="cb1-6"><a></a><span class="co"># Mean solar angles across the whole period</span></span>
-<span id="cb1-7"><a></a>mean_azimuth <span class="op">=</span> daytime[<span class="st">"azimuth"</span>].mean()</span>
-<span id="cb1-8"><a></a>mean_zenith <span class="op">=</span> daytime[<span class="st">"apparent_zenith"</span>].mean()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode numberSource javascript number-lines code-with-copy"><code class="sourceCode javascript"><span id="cb2-1"><a></a><span class="kw">var</span> shadowMap <span class="op">=</span> ee<span class="op">.</span><span class="at">Terrain</span><span class="op">.</span><span class="fu">hillShadow</span>({</span>
-<span id="cb2-2"><a></a>  <span class="dt">image</span><span class="op">:</span> londonDsmMerc<span class="op">,</span></span>
-<span id="cb2-3"><a></a>  <span class="dt">azimuth</span><span class="op">:</span> <span class="fl">180.02504604372402</span><span class="op">,</span></span>
-<span id="cb2-4"><a></a>  <span class="dt">zenith</span><span class="op">:</span> <span class="fl">62.63912040279354</span><span class="op">,</span></span>
-<span id="cb2-5"><a></a>  <span class="dt">neighborhoodSize</span><span class="op">:</span> <span class="dv">100</span><span class="op">,</span></span>
-<span id="cb2-6"><a></a>  <span class="dt">hysteresis</span><span class="op">:</span> <span class="kw">false</span></span>
-<span id="cb2-7"><a></a>})<span class="op">;</span></span>
-<span id="cb2-8"><a></a><span class="co">// Generate the shadow map</span></span>
-<span id="cb2-9"><a></a><span class="kw">var</span> londonShadow <span class="op">=</span> shadowMap<span class="op">.</span><span class="fu">eq</span>(<span class="dv">0</span>)<span class="op">.</span><span class="fu">rename</span>(<span class="st">'shadow'</span>)<span class="co">// 1 = shadow, 0 = not shadow</span></span>
-<span id="cb2-10"><a></a>  <span class="op">.</span><span class="fu">toFloat</span>()</span>
-<span id="cb2-11"><a></a>  <span class="op">.</span><span class="fu">setDefaultProjection</span>(targetProj)<span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</section>
-<section class="slide level2">
-
 <p>Wind direction and wind pseudo-shadows</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode numberSource javascript number-lines code-with-copy"><code class="sourceCode javascript"><span id="cb3-1"><a></a><span class="co">// WIND DIRECTION</span></span>
-<span id="cb3-2"><a></a><span class="kw">var</span> wind <span class="op">=</span> windSource</span>
-<span id="cb3-3"><a></a>  <span class="op">.</span><span class="fu">filterBounds</span>(london)</span>
-<span id="cb3-4"><a></a>  <span class="op">.</span><span class="fu">filterDate</span>(<span class="st">'2025-10-19'</span><span class="op">,</span> <span class="st">'2026-03-19'</span>)</span>
-<span id="cb3-5"><a></a>  <span class="op">.</span><span class="fu">select</span>([<span class="st">'u_component_of_wind_10m'</span><span class="op">,</span> <span class="st">'v_component_of_wind_10m'</span>])</span>
-<span id="cb3-6"><a></a>  <span class="op">.</span><span class="fu">mean</span>()</span>
-<span id="cb3-7"><a></a>  <span class="op">.</span><span class="fu">clipToCollection</span>(london)<span class="op">;</span></span>
-<span id="cb3-8"><a></a></span>
-<span id="cb3-9"><a></a><span class="co">// direction wind blows TO</span></span>
-<span id="cb3-10"><a></a><span class="kw">var</span> windTo <span class="op">=</span> wind<span class="op">.</span><span class="fu">expression</span>(</span>
-<span id="cb3-11"><a></a>  <span class="st">'(atan2(u, v) * 180 / pi + 360) % 360'</span><span class="op">,</span> {</span>
-<span id="cb3-12"><a></a>    <span class="dt">u</span><span class="op">:</span> wind<span class="op">.</span><span class="fu">select</span>(<span class="st">'u_component_of_wind_10m'</span>)<span class="op">,</span></span>
-<span id="cb3-13"><a></a>    <span class="dt">v</span><span class="op">:</span> wind<span class="op">.</span><span class="fu">select</span>(<span class="st">'v_component_of_wind_10m'</span>)<span class="op">,</span></span>
-<span id="cb3-14"><a></a>    <span class="dt">pi</span><span class="op">:</span> <span class="bu">Math</span><span class="op">.</span><span class="cn">PI</span></span>
-<span id="cb3-15"><a></a>})<span class="op">.</span><span class="fu">rename</span>(<span class="st">'wind_to'</span>)<span class="op">;</span></span>
-<span id="cb3-16"><a></a></span>
-<span id="cb3-17"><a></a><span class="co">// convert to direction wind comes FROM</span></span>
-<span id="cb3-18"><a></a><span class="kw">var</span> windFrom <span class="op">=</span> windTo<span class="op">.</span><span class="fu">add</span>(<span class="dv">180</span>)<span class="op">.</span><span class="fu">mod</span>(<span class="dv">360</span>)<span class="op">.</span><span class="fu">rename</span>(<span class="st">'wind_from'</span>)<span class="op">;</span></span>
-<span id="cb3-19"><a></a></span>
-<span id="cb3-20"><a></a><span class="kw">var</span> meanWindFrom <span class="op">=</span> ee<span class="op">.</span><span class="fu">Number</span>(</span>
-<span id="cb3-21"><a></a>  windFrom<span class="op">.</span><span class="fu">reduceRegion</span>({</span>
-<span id="cb3-22"><a></a>    <span class="dt">reducer</span><span class="op">:</span> ee<span class="op">.</span><span class="at">Reducer</span><span class="op">.</span><span class="fu">mean</span>()<span class="op">,</span></span>
-<span id="cb3-23"><a></a>    <span class="dt">geometry</span><span class="op">:</span> london<span class="op">,</span></span>
-<span id="cb3-24"><a></a>    <span class="dt">scale</span><span class="op">:</span> <span class="dv">1000</span><span class="op">,</span></span>
-<span id="cb3-25"><a></a>    <span class="dt">bestEffort</span><span class="op">:</span> <span class="kw">true</span><span class="op">,</span></span>
-<span id="cb3-26"><a></a>    <span class="dt">maxPixels</span><span class="op">:</span> <span class="fl">1e8</span></span>
-<span id="cb3-27"><a></a>  })<span class="op">.</span><span class="fu">get</span>(<span class="st">'wind_from'</span>)</span>
-<span id="cb3-28"><a></a>)<span class="op">;</span></span>
-<span id="cb3-29"><a></a></span>
-<span id="cb3-30"><a></a><span class="co">// 0 = sheltered, 1 = exposed</span></span>
-<span id="cb3-31"><a></a><span class="kw">var</span> windShelterRaw <span class="op">=</span> ee<span class="op">.</span><span class="at">Terrain</span><span class="op">.</span><span class="fu">hillShadow</span>({</span>
-<span id="cb3-32"><a></a>  <span class="dt">image</span><span class="op">:</span> londonDsmMerc<span class="op">,</span></span>
-<span id="cb3-33"><a></a>  <span class="dt">azimuth</span><span class="op">:</span> meanWindFrom<span class="op">,</span></span>
-<span id="cb3-34"><a></a>  <span class="dt">zenith</span><span class="op">:</span> <span class="dv">39</span><span class="op">,</span></span>
-<span id="cb3-35"><a></a>  <span class="dt">neighborhoodSize</span><span class="op">:</span> <span class="dv">9</span><span class="op">,</span></span>
-<span id="cb3-36"><a></a>  <span class="dt">hysteresis</span><span class="op">:</span> <span class="kw">false</span></span>
-<span id="cb3-37"><a></a>})<span class="op">;</span></span>
-<span id="cb3-38"><a></a></span>
-<span id="cb3-39"><a></a><span class="co">// 1 = wind protected, 0 = not protected</span></span>
-<span id="cb3-40"><a></a><span class="kw">var</span> windProtected <span class="op">=</span> windShelterRaw<span class="op">.</span><span class="fu">eq</span>(<span class="dv">0</span>)</span>
-<span id="cb3-41"><a></a>  <span class="op">.</span><span class="fu">rename</span>(<span class="st">'wind_protected'</span>)</span>
-<span id="cb3-42"><a></a>  <span class="op">.</span><span class="fu">toFloat</span>()</span>
-<span id="cb3-43"><a></a>  <span class="op">.</span><span class="fu">setDefaultProjection</span>(targetProj)<span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource javascript number-lines code-with-copy"><code class="sourceCode javascript"><span id="cb1-1"><a></a><span class="co">// WIND DIRECTION</span></span>
+<span id="cb1-2"><a></a><span class="kw">var</span> wind <span class="op">=</span> windSource</span>
+<span id="cb1-3"><a></a>  <span class="op">.</span><span class="fu">filterBounds</span>(london)</span>
+<span id="cb1-4"><a></a>  <span class="op">.</span><span class="fu">filterDate</span>(<span class="st">'2025-10-19'</span><span class="op">,</span> <span class="st">'2026-03-19'</span>)</span>
+<span id="cb1-5"><a></a>  <span class="op">.</span><span class="fu">select</span>([<span class="st">'u_component_of_wind_10m'</span><span class="op">,</span> <span class="st">'v_component_of_wind_10m'</span>])</span>
+<span id="cb1-6"><a></a>  <span class="op">.</span><span class="fu">mean</span>()</span>
+<span id="cb1-7"><a></a>  <span class="op">.</span><span class="fu">clipToCollection</span>(london)<span class="op">;</span></span>
+<span id="cb1-8"><a></a></span>
+<span id="cb1-9"><a></a><span class="co">// direction wind blows TO</span></span>
+<span id="cb1-10"><a></a><span class="kw">var</span> windTo <span class="op">=</span> wind<span class="op">.</span><span class="fu">expression</span>(</span>
+<span id="cb1-11"><a></a>  <span class="st">'(atan2(u, v) * 180 / pi + 360) % 360'</span><span class="op">,</span> {</span>
+<span id="cb1-12"><a></a>    <span class="dt">u</span><span class="op">:</span> wind<span class="op">.</span><span class="fu">select</span>(<span class="st">'u_component_of_wind_10m'</span>)<span class="op">,</span></span>
+<span id="cb1-13"><a></a>    <span class="dt">v</span><span class="op">:</span> wind<span class="op">.</span><span class="fu">select</span>(<span class="st">'v_component_of_wind_10m'</span>)<span class="op">,</span></span>
+<span id="cb1-14"><a></a>    <span class="dt">pi</span><span class="op">:</span> <span class="bu">Math</span><span class="op">.</span><span class="cn">PI</span></span>
+<span id="cb1-15"><a></a>})<span class="op">.</span><span class="fu">rename</span>(<span class="st">'wind_to'</span>)<span class="op">;</span></span>
+<span id="cb1-16"><a></a></span>
+<span id="cb1-17"><a></a><span class="co">// convert to direction wind comes FROM</span></span>
+<span id="cb1-18"><a></a><span class="kw">var</span> windFrom <span class="op">=</span> windTo<span class="op">.</span><span class="fu">add</span>(<span class="dv">180</span>)<span class="op">.</span><span class="fu">mod</span>(<span class="dv">360</span>)<span class="op">.</span><span class="fu">rename</span>(<span class="st">'wind_from'</span>)<span class="op">;</span></span>
+<span id="cb1-19"><a></a></span>
+<span id="cb1-20"><a></a><span class="kw">var</span> meanWindFrom <span class="op">=</span> ee<span class="op">.</span><span class="fu">Number</span>(</span>
+<span id="cb1-21"><a></a>  windFrom<span class="op">.</span><span class="fu">reduceRegion</span>({</span>
+<span id="cb1-22"><a></a>    <span class="dt">reducer</span><span class="op">:</span> ee<span class="op">.</span><span class="at">Reducer</span><span class="op">.</span><span class="fu">mean</span>()<span class="op">,</span></span>
+<span id="cb1-23"><a></a>    <span class="dt">geometry</span><span class="op">:</span> london<span class="op">,</span></span>
+<span id="cb1-24"><a></a>    <span class="dt">scale</span><span class="op">:</span> <span class="dv">1000</span><span class="op">,</span></span>
+<span id="cb1-25"><a></a>    <span class="dt">bestEffort</span><span class="op">:</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb1-26"><a></a>    <span class="dt">maxPixels</span><span class="op">:</span> <span class="fl">1e8</span></span>
+<span id="cb1-27"><a></a>  })<span class="op">.</span><span class="fu">get</span>(<span class="st">'wind_from'</span>)</span>
+<span id="cb1-28"><a></a>)<span class="op">;</span></span>
+<span id="cb1-29"><a></a></span>
+<span id="cb1-30"><a></a><span class="co">// 0 = sheltered, 1 = exposed</span></span>
+<span id="cb1-31"><a></a><span class="kw">var</span> windShelterRaw <span class="op">=</span> ee<span class="op">.</span><span class="at">Terrain</span><span class="op">.</span><span class="fu">hillShadow</span>({</span>
+<span id="cb1-32"><a></a>  <span class="dt">image</span><span class="op">:</span> londonDsmMerc<span class="op">,</span></span>
+<span id="cb1-33"><a></a>  <span class="dt">azimuth</span><span class="op">:</span> meanWindFrom<span class="op">,</span></span>
+<span id="cb1-34"><a></a>  <span class="dt">zenith</span><span class="op">:</span> <span class="dv">39</span><span class="op">,</span></span>
+<span id="cb1-35"><a></a>  <span class="dt">neighborhoodSize</span><span class="op">:</span> <span class="dv">9</span><span class="op">,</span></span>
+<span id="cb1-36"><a></a>  <span class="dt">hysteresis</span><span class="op">:</span> <span class="kw">false</span></span>
+<span id="cb1-37"><a></a>})<span class="op">;</span></span>
+<span id="cb1-38"><a></a></span>
+<span id="cb1-39"><a></a><span class="co">// 1 = wind protected, 0 = not protected</span></span>
+<span id="cb1-40"><a></a><span class="kw">var</span> windProtected <span class="op">=</span> windShelterRaw<span class="op">.</span><span class="fu">eq</span>(<span class="dv">0</span>)</span>
+<span id="cb1-41"><a></a>  <span class="op">.</span><span class="fu">rename</span>(<span class="st">'wind_protected'</span>)</span>
+<span id="cb1-42"><a></a>  <span class="op">.</span><span class="fu">toFloat</span>()</span>
+<span id="cb1-43"><a></a>  <span class="op">.</span><span class="fu">setDefaultProjection</span>(targetProj)<span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section class="slide level2">
 
 <p><code>ee.Reducer.mean()</code> over multi-band raster</p>
 <iframe src="https://ee-panevauk1.projects.earthengine.app/view/sunwindshelter" width="100%" height="200px">
 </iframe>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode numberSource javascript number-lines code-with-copy"><code class="sourceCode javascript"><span id="cb4-1"><a></a><span class="kw">function</span> <span class="fu">computeBatchStats</span>(roadsBatch) {</span>
-<span id="cb4-2"><a></a>  <span class="kw">var</span> bufferedBatch <span class="op">=</span> <span class="fu">bufferRoads</span>(roadsBatch)<span class="op">;</span></span>
-<span id="cb4-3"><a></a></span>
-<span id="cb4-4"><a></a>  <span class="cf">return</span> stacked<span class="op">.</span><span class="fu">reduceRegions</span>({</span>
-<span id="cb4-5"><a></a>    <span class="dt">collection</span><span class="op">:</span> bufferedBatch<span class="op">,</span></span>
-<span id="cb4-6"><a></a>    <span class="dt">reducer</span><span class="op">:</span> ee<span class="op">.</span><span class="at">Reducer</span><span class="op">.</span><span class="fu">mean</span>()<span class="op">,</span></span>
-<span id="cb4-7"><a></a>    <span class="dt">scale</span><span class="op">:</span> <span class="dv">1</span><span class="op">,</span></span>
-<span id="cb4-8"><a></a>    <span class="dt">crs</span><span class="op">:</span> <span class="st">'EPSG:3857'</span><span class="op">,</span></span>
-<span id="cb4-9"><a></a>    <span class="dt">tileScale</span><span class="op">:</span> <span class="dv">8</span></span>
-<span id="cb4-10"><a></a>  })<span class="op">;</span></span>
-<span id="cb4-11"><a></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode numberSource javascript number-lines code-with-copy"><code class="sourceCode javascript"><span id="cb2-1"><a></a><span class="kw">function</span> <span class="fu">computeBatchStats</span>(roadsBatch) {</span>
+<span id="cb2-2"><a></a>  <span class="kw">var</span> bufferedBatch <span class="op">=</span> <span class="fu">bufferRoads</span>(roadsBatch)<span class="op">;</span></span>
+<span id="cb2-3"><a></a></span>
+<span id="cb2-4"><a></a>  <span class="cf">return</span> stacked<span class="op">.</span><span class="fu">reduceRegions</span>({</span>
+<span id="cb2-5"><a></a>    <span class="dt">collection</span><span class="op">:</span> bufferedBatch<span class="op">,</span></span>
+<span id="cb2-6"><a></a>    <span class="dt">reducer</span><span class="op">:</span> ee<span class="op">.</span><span class="at">Reducer</span><span class="op">.</span><span class="fu">mean</span>()<span class="op">,</span></span>
+<span id="cb2-7"><a></a>    <span class="dt">scale</span><span class="op">:</span> <span class="dv">1</span><span class="op">,</span></span>
+<span id="cb2-8"><a></a>    <span class="dt">crs</span><span class="op">:</span> <span class="st">'EPSG:3857'</span><span class="op">,</span></span>
+<span id="cb2-9"><a></a>    <span class="dt">tileScale</span><span class="op">:</span> <span class="dv">8</span></span>
+<span id="cb2-10"><a></a>  })<span class="op">;</span></span>
+<span id="cb2-11"><a></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="indicators-ndvi-green-space-exposure" class="slide level2">
 <h2>Indicators: NDVI (Green space exposure)</h2>
@@ -393,29 +360,29 @@ e^{-0.5 \times \left(d_i / b\right)^2}
 <section class="slide level2">
 
 <h3 id="gee-acquisition">GEE acquisition</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a></a>s2 <span class="op">=</span> ee.ImageCollection(<span class="st">"COPERNICUS/S2_SR_HARMONIZED"</span>) <span class="op">\</span></span>
-<span id="cb5-2"><a></a>    .filterBounds(london) <span class="op">\</span></span>
-<span id="cb5-3"><a></a>    .filterDate(<span class="st">"2023-01-01"</span>, <span class="st">"2023-12-31"</span>) <span class="op">\</span></span>
-<span id="cb5-4"><a></a>    .<span class="bu">filter</span>(ee.Filter.lt(<span class="st">"CLOUDY_PIXEL_PERCENTAGE"</span>, <span class="dv">35</span>))</span>
-<span id="cb5-5"><a></a></span>
-<span id="cb5-6"><a></a>ndvi <span class="op">=</span> s2.median() <span class="op">\</span></span>
-<span id="cb5-7"><a></a>    .normalizedDifference([<span class="st">"B8"</span>, <span class="st">"B4"</span>]) <span class="op">\</span></span>
-<span id="cb5-8"><a></a>    .focal_mean(radius<span class="op">=</span><span class="dv">40</span>, units<span class="op">=</span><span class="st">"meters"</span>) <span class="op">\</span></span>
-<span id="cb5-9"><a></a>    .clamp(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a></a>s2 <span class="op">=</span> ee.ImageCollection(<span class="st">"COPERNICUS/S2_SR_HARMONIZED"</span>) <span class="op">\</span></span>
+<span id="cb3-2"><a></a>    .filterBounds(london) <span class="op">\</span></span>
+<span id="cb3-3"><a></a>    .filterDate(<span class="st">"2023-01-01"</span>, <span class="st">"2023-12-31"</span>) <span class="op">\</span></span>
+<span id="cb3-4"><a></a>    .<span class="bu">filter</span>(ee.Filter.lt(<span class="st">"CLOUDY_PIXEL_PERCENTAGE"</span>, <span class="dv">35</span>))</span>
+<span id="cb3-5"><a></a></span>
+<span id="cb3-6"><a></a>ndvi <span class="op">=</span> s2.median() <span class="op">\</span></span>
+<span id="cb3-7"><a></a>    .normalizedDifference([<span class="st">"B8"</span>, <span class="st">"B4"</span>]) <span class="op">\</span></span>
+<span id="cb3-8"><a></a>    .focal_mean(radius<span class="op">=</span><span class="dv">40</span>, units<span class="op">=</span><span class="st">"meters"</span>) <span class="op">\</span></span>
+<span id="cb3-9"><a></a>    .clamp(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section class="slide level2">
 
 <h3 id="fusion-with-shade-shelter">Fusion with shade &amp; shelter</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a></a><span class="co"># NDVI mapped from [-1,1] to [0,1]</span></span>
-<span id="cb6-2"><a></a>score_green_ndvi <span class="op">=</span> (ndvi <span class="op">+</span> <span class="fl">1.0</span>) <span class="op">/</span> <span class="fl">2.0</span></span>
-<span id="cb6-3"><a></a></span>
-<span id="cb6-4"><a></a><span class="co"># Merge 50/50 with shade, then p5-p95 normalisation</span></span>
-<span id="cb6-5"><a></a>score_shade_ndvi_raw <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> shade_score <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> score_green_ndvi</span>
-<span id="cb6-6"><a></a></span>
-<span id="cb6-7"><a></a>p5, p95 <span class="op">=</span> np.percentile(score_shade_ndvi_raw, [<span class="dv">5</span>, <span class="dv">95</span>])</span>
-<span id="cb6-8"><a></a>score_shade_shelter_final <span class="op">=</span> np.clip(</span>
-<span id="cb6-9"><a></a>    (score_shade_ndvi_raw <span class="op">-</span> p5) <span class="op">/</span> (p95 <span class="op">-</span> p5), <span class="fl">0.0</span>, <span class="fl">1.0</span></span>
-<span id="cb6-10"><a></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a></a><span class="co"># NDVI mapped from [-1,1] to [0,1]</span></span>
+<span id="cb4-2"><a></a>score_green_ndvi <span class="op">=</span> (ndvi <span class="op">+</span> <span class="fl">1.0</span>) <span class="op">/</span> <span class="fl">2.0</span></span>
+<span id="cb4-3"><a></a></span>
+<span id="cb4-4"><a></a><span class="co"># Merge 50/50 with shade, then p5-p95 normalisation</span></span>
+<span id="cb4-5"><a></a>score_shade_ndvi_raw <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> shade_score <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> score_green_ndvi</span>
+<span id="cb4-6"><a></a></span>
+<span id="cb4-7"><a></a>p5, p95 <span class="op">=</span> np.percentile(score_shade_ndvi_raw, [<span class="dv">5</span>, <span class="dv">95</span>])</span>
+<span id="cb4-8"><a></a>score_shade_shelter_final <span class="op">=</span> np.clip(</span>
+<span id="cb4-9"><a></a>    (score_shade_ndvi_raw <span class="op">-</span> p5) <span class="op">/</span> (p95 <span class="op">-</span> p5), <span class="fl">0.0</span>, <span class="fl">1.0</span></span>
+<span id="cb4-10"><a></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Scripts: <a href="https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/backend/scripts/download_ndvi_from_gee.py">download_ndvi_from_gee.py</a> · <a href="https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/backend/app/ndvi_service.py">ndvi_service.py</a></p>
 </section>
 <section id="indicators-clean-air" class="slide level2">
@@ -440,26 +407,6 @@ e^{-0.5 \times \left(d_i / b\right)^2}
 </div></div>
 <p><a href="https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/backend/app/laei_service.py">Script</a>.</p>
 </section>
-<section class="slide level2">
-
-<h3 id="outlier-handling-normalisation">Outlier handling &amp; normalisation</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a></a><span class="co"># Per-pollutant: NULL / &lt;=0 / &lt;= -9990 → missing</span></span>
-<span id="cb7-2"><a></a>valid <span class="op">=</span> np.isfinite(val) <span class="kw">and</span> val <span class="op">!=</span> nodata <span class="kw">and</span> val <span class="op">&gt;</span> <span class="op">-</span><span class="dv">9990</span></span>
-<span id="cb7-3"><a></a></span>
-<span id="cb7-4"><a></a><span class="co"># p5-p95 robust min-max to [0,1]</span></span>
-<span id="cb7-5"><a></a>p5, p95 <span class="op">=</span> np.percentile(values, [<span class="dv">5</span>, <span class="dv">95</span>])</span>
-<span id="cb7-6"><a></a>score <span class="op">=</span> np.clip((arr <span class="op">-</span> p5) <span class="op">/</span> (p95 <span class="op">-</span> p5), <span class="fl">0.0</span>, <span class="fl">1.0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<h3 id="weighted-fusion">Weighted fusion</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a></a><span class="co"># Default weights</span></span>
-<span id="cb8-2"><a></a>weights <span class="op">=</span> AirQualityWeights(no2<span class="op">=</span><span class="fl">0.40</span>, pm25<span class="op">=</span><span class="fl">0.35</span>, pm10<span class="op">=</span><span class="fl">0.25</span>)</span>
-<span id="cb8-3"><a></a></span>
-<span id="cb8-4"><a></a>no2_n  <span class="op">=</span> <span class="va">self</span>._normalize(<span class="st">"no2"</span>, no2)</span>
-<span id="cb8-5"><a></a>pm25_n <span class="op">=</span> <span class="va">self</span>._normalize(<span class="st">"pm25"</span>, pm25)</span>
-<span id="cb8-6"><a></a>pm10_n <span class="op">=</span> <span class="va">self</span>._normalize(<span class="st">"pm10"</span>, pm10)</span>
-<span id="cb8-7"><a></a></span>
-<span id="cb8-8"><a></a>aq_score <span class="op">=</span> (no2_n <span class="op">*</span> weights.no2 <span class="op">+</span> pm25_n <span class="op">*</span> weights.pm25 <span class="op">+</span></span>
-<span id="cb8-9"><a></a>            pm10_n <span class="op">*</span> weights.pm10) <span class="op">/</span> (weights.no2 <span class="op">+</span> weights.pm25 <span class="op">+</span> weights.pm10)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</section>
 <section id="indicators-noise" class="slide level2">
 <h2>Indicators: Noise</h2>
 <p>Road traffic noise (Lden/Lday) was sampled at each road segment’s midpoint from DEFRA noise rasters. Outlier handling follows the same procedure as air quality: NULL and ≤0 values are treated as missing, filled via median imputation, and clipped at p1–p99.</p>
@@ -471,15 +418,14 @@ e^{-0.5 \times \left(d_i / b\right)^2}
 </section>
 <section id="indicators-walking-effort" class="slide level2">
 <h2>Indicators: Walking effort</h2>
-<p>Slope was derived from a DEM by sampling the start and end points of each road segment and calculating the elevation difference relative to the segment length. This allowed each segment to be described not only by distance but also by the physical effort required to walk along it. The script for this part can be found <a href="https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/yu_routing/data-prep/add_slope_to_network.py">here</a>.</p>
-</section>
+<p>Slope was derived from a DEM (Shuttle Radar Topography Mission (SRTM GL1) Global 30m).</p>
+<p>The script for this part can be found <a href="https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/yu_routing/data-prep/add_slope_to_network.py">here</a>.</p>
+
+<img data-src="images/walk effort function.jpeg" style="width:100.0%" class="r-stretch"></section>
 <section id="building-the-application" class="slide level2">
 <h2>Building the application</h2>
-</section>
-<section id="website-appearance" class="slide level2">
-<h2>Website appearance</h2>
 
-<img data-src="images/website_appearance.gif" style="width:100.0%" class="r-stretch"></section>
+<img data-src="images/deployment.jpeg" style="width:100.0%" class="r-stretch"></section>
 <section id="thank-you" class="slide level2">
 <h2>Thank you!</h2>
 <p>CASA0025 Group 1</p>
