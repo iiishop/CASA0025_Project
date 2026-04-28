@@ -31,8 +31,6 @@ explore specific routes.
 
 **Why?** The apps on the market focus on a few selected indicators or are not interactive.
 
-**Who are the users?** Policy-makers and the general public.
-
 ---
 
 ## Data and Methodology
@@ -106,7 +104,7 @@ GEE script using `ee.Terrain.hillShadow()` with England 1m DSM for sun and wind 
 Solar position and shadow map
 
 ``` python
-times = pd.date_range(start="2025-04-19 06:00", end="2026-09-19 20:00", freq="1h", tz=timezone)
+times = pd.date_range(start="2025-04-19 06:00", freq="1h", tz=timezone)
 # Calculate solar position
 solar = get_solarposition(time=times,latitude=lat,longitude=lon)
 daytime = solar[solar["apparent_elevation"] > 0] # Keep only daytime observations
