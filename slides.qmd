@@ -1,5 +1,12 @@
 ---
 title: "Comfort Path: Explore walkable streets across London"
+format:
+  revealjs:
+    html-math-method: mathjax
+    slide-number: true
+    theme: simple
+    width: 1200
+    height: 800
 ---
 
 ## The application
@@ -41,18 +48,19 @@ explore specific routes.
 
 We transformed the scores into penalties, and applied them on a network graph with the following routing cost formula:
 $$
-\begin{aligned}
-\text{edge_cost} =\;&
-w_{\text{length}} \cdot \text{length}_{\text{norm}} \\
-&+ w_{\text{safety}} \cdot \text{unsafety}_{\text{penalty}} \\
-&+ w_{\text{activity}} \cdot \text{inactivity}_{\text{penalty}} \\
-&+ w_{\text{walk}} \cdot \text{walking_effort}_{\text{penalty}} \\
-&+ w_{\text{shade}} \cdot \text{lack_shade_shelter}_{\text{penalty}} \\
-&+ w_{\text{air}} \cdot \text{polluted_air}_{\text{penalty}} \\
-&+ w_{\text{noise}} \cdot \text{road_noise}_{\text{penalty}}
-\end{aligned}
+\begin{array}{l}
+\text{edge_cost} =\; w_{\text{length}} \cdot \text{length}_{\text{norm}} \\
++\; w_{\text{safety}} \cdot \text{unsafety}_{\text{penalty}} \\
++\; w_{\text{activity}} \cdot \text{inactivity}_{\text{penalty}} \\
++\; w_{\text{walk}} \cdot \text{walking_effort}_{\text{penalty}} \\
++\; w_{\text{shade}} \cdot \text{lack_shade_shelter}_{\text{penalty}} \\
++\; w_{\text{air}} \cdot \text{polluted_air}_{\text{penalty}} \\
++\; w_{\text{noise}} \cdot \text{road_noise}_{\text{penalty}}
+\end{array}
 $$
 
+
+---
 
 # Contributions
 
@@ -198,17 +206,132 @@ function computeBatchStats(roadsBatch) {
 
 ---
 
-NDVI
+## Indicators: NDVI (Green space exposure)
 
-Yuqian
+::: {.columns}
 
-The NDVI was [computed](https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/backend/app/ndvi_service.py) with Sentinel2 using the classic approach, and then aggregated into the combined score.
+::: {.column width="45%"}
+NDVI was derived from Sentinel-2 (2023, cloud < 35%) using the classic approach. Values are 
+sampled at each road segment's midpoint, mapped from [-1, 1] to [0, 1], then fused with shade 
+& shelter at equal weight and re-normalised (p5-p95) into score_shade_shelter_final.
+
+$$
+\text{NDVI} = \frac{\text{NIR} - \text{Red}}{\text{NIR} + \text{Red}} = \frac{B8 - B4}{B8 + B4}
+$$
+:::
+
+::: {.column width="55%"}
+![Healthy vegetation reflects strongly in NIR and absorbs in Red](images/ndvi_principle.png){width=100%}
+:::
+
+::::
 
 ---
 
-## Indicators: Clean air & noise
+### GEE acquisition
 
-The indicators were normalised and treated for missing and extreme values. The normalized indicators were then integrated via a weighted linear combination to derive a composite index for each road segment. Script [here](https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/backend/app/laei_service.py).
+``` python
+s2 = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED") \
+    .filterBounds(london) \
+    .filterDate("2023-01-01", "2023-12-31") \
+    .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 35))
+
+ndvi = s2.median() \
+    .normalizedDifference(["B8", "B4"]) \
+    .focal_mean(radius=40, units="meters") \
+    .clamp(-1, 1)
+```
+
+---
+
+### Fusion with shade & shelter
+
+``` python
+# NDVI mapped from [-1,1] to [0,1]
+score_green_ndvi = (ndvi + 1.0) / 2.0
+
+# Merge 50/50 with shade, then p5-p95 normalisation
+score_shade_ndvi_raw = 0.5 * shade_score + 0.5 * score_green_ndvi
+
+p5, p95 = np.percentile(score_shade_ndvi_raw, [5, 95])
+score_shade_shelter_final = np.clip(
+    (score_shade_ndvi_raw - p5) / (p95 - p5), 0.0, 1.0
+)
+```
+
+Scripts: [download_ndvi_from_gee.py](https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/backend/scripts/download_ndvi_from_gee.py) · [ndvi_service.py](https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/backend/app/ndvi_service.py)
+
+---
+
+## Indicators: Clean air
+
+::: {.columns}
+
+::: {.column width="40%"}
+NO₂, PM₂.₅, and PM₁₀ were sampled at each road segment's midpoint from LAEI rasters. 
+NULL and ≤0 values treated as missing, then each pollutant normalised (p5-p95) and reversed.
+
+$$
+\begin{array}{l}
+\text{air} =\; 0.40 \cdot \text{NO}_2 \\
++\; 0.35 \cdot \text{PM}_{2.5} \\
++\; 0.25 \cdot \text{PM}_{10}
+\end{array}
+$$
+:::
+
+::: {.column width="60%"}
+![LAEI rasters → midpoint sampling → outlier treatment → p5-p95 normalisation → weighted fusion → score_clean_air](images/air_pipeline.png){width=40%}
+:::
+
+::::
+
+[Script](https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/backend/app/laei_service.py).
+
+---
+
+### Outlier handling & normalisation
+
+``` python
+# Per-pollutant: NULL / <=0 / <= -9990 → missing
+valid = np.isfinite(val) and val != nodata and val > -9990
+
+# p5-p95 robust min-max to [0,1]
+p5, p95 = np.percentile(values, [5, 95])
+score = np.clip((arr - p5) / (p95 - p5), 0.0, 1.0)
+```
+
+### Weighted fusion
+
+``` python
+# Default weights
+weights = AirQualityWeights(no2=0.40, pm25=0.35, pm10=0.25)
+
+no2_n  = self._normalize("no2", no2)
+pm25_n = self._normalize("pm25", pm25)
+pm10_n = self._normalize("pm10", pm10)
+
+aq_score = (no2_n * weights.no2 + pm25_n * weights.pm25 +
+            pm10_n * weights.pm10) / (weights.no2 + weights.pm25 + weights.pm10)
+```
+
+---
+
+## Indicators: Noise
+
+Road traffic noise (Lden/Lday) was sampled at each road segment's midpoint from DEFRA 
+noise rasters. Outlier handling follows the same procedure as air quality: NULL and ≤0 values 
+are treated as missing, filled via median imputation, and clipped at p1–p99.
+
+Unlike air quality, noise uses a **fixed physical range** for normalisation:
+
+$$
+\text{score\_not\_too\_noisy} = 1 - \frac{\text{dB} - 40}{85 - 40}
+$$
+
+Each road segment is scored on the [40, 85] dB interval, then reversed so higher scores 
+indicate quieter streets. The routing engine uses score_not_too_noisy directly.
+[Script](https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/backend/app/laei_service.py).
 
 ---
 
