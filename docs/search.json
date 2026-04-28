@@ -180,5 +180,26 @@
     "title": "Comfort Path: Explore walkable streets across London",
     "section": "Thank you!",
     "text": "Thank you!\nCASA0025 Group 1\nAuthors: Yu Shi, Anna Saveleva, Yuqian Lin"
+  },
+  {
+    "objectID": "slides.html#indicators-ndvi-green-space-exposure",
+    "href": "slides.html#indicators-ndvi-green-space-exposure",
+    "title": "Comfort Path: Explore walkable streets across London",
+    "section": "Indicators: NDVI (Green space exposure)",
+    "text": "Indicators: NDVI (Green space exposure)\n\n\nNDVI was derived from Sentinel-2 (2023, cloud &lt; 35%) using the classic approach. Values are sampled at each road segment’s midpoint, mapped from [-1, 1] to [0, 1], then fused with shade & shelter at equal weight and re-normalised (p5-p95) into score_shade_shelter_final.\n\\[\n\\text{NDVI} = \\frac{\\text{NIR} - \\text{Red}}{\\text{NIR} + \\text{Red}} = \\frac{B8 - B4}{B8 + B4}\n\\]\n\n\n\n\nHealthy vegetation reflects strongly in NIR and absorbs in Red"
+  },
+  {
+    "objectID": "slides.html#indicators-clean-air",
+    "href": "slides.html#indicators-clean-air",
+    "title": "Comfort Path: Explore walkable streets across London",
+    "section": "Indicators: Clean air",
+    "text": "Indicators: Clean air\n\n\nNO₂, PM₂.₅, and PM₁₀ were sampled at each road segment’s midpoint from LAEI rasters. NULL and ≤0 values treated as missing, then each pollutant normalised (p5-p95) and reversed.\n\\[\n\\begin{array}{l}\n\\text{air} =\\; 0.40 \\cdot \\text{NO}_2 \\\\\n+\\; 0.35 \\cdot \\text{PM}_{2.5} \\\\\n+\\; 0.25 \\cdot \\text{PM}_{10}\n\\end{array}\n\\]\n\n\n\n\nLAEI rasters → midpoint sampling → outlier treatment → p5-p95 normalisation → weighted fusion → score_clean_air\n\n\n\nScript."
+  },
+  {
+    "objectID": "slides.html#indicators-noise",
+    "href": "slides.html#indicators-noise",
+    "title": "Comfort Path: Explore walkable streets across London",
+    "section": "Indicators: Noise",
+    "text": "Indicators: Noise\nRoad traffic noise (Lden/Lday) was sampled at each road segment’s midpoint from DEFRA noise rasters. Outlier handling follows the same procedure as air quality: NULL and ≤0 values are treated as missing, filled via median imputation, and clipped at p1–p99.\nUnlike air quality, noise uses a fixed physical range for normalisation:\n\\[\n\\text{score\\_not\\_too\\_noisy} = 1 - \\frac{\\text{dB} - 40}{85 - 40}\n\\]\nEach road segment is scored on the [40, 85] dB interval, then reversed so higher scores indicate quieter streets. The routing engine uses score_not_too_noisy directly. Script."
   }
 ]

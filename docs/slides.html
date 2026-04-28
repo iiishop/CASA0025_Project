@@ -101,7 +101,7 @@
     code span.vs { color: #20794d; } /* VerbatimString */
     code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
   </style>
-  <link rel="stylesheet" href="site_libs/revealjs/dist/theme/quarto-2740581606dc327e82f18f789b69d8a0.css">
+  <link rel="stylesheet" href="site_libs/revealjs/dist/theme/quarto-0427d8d92a431aa6a6430e53ec02a470.css">
   <link href="site_libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
   <link href="site_libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
   <link href="site_libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
@@ -237,18 +237,21 @@
 </section>
 <section class="slide level2">
 
-<p>We transformed the scores into penalties, and applied them on a network graph with the following routing cost formula: <span class="math display">\[
+<p>We transformed the scores into penalties, and applied them on a network graph with the following routing cost formula:</p>
+<p><span class="math display">\[
 \begin{aligned}
-\text{edge_cost} =\;&amp;
-w_{\text{length}} \cdot \text{length}_{\text{norm}} \\
-&amp;+ w_{\text{safety}} \cdot \text{unsafety}_{\text{penalty}} \\
-&amp;+ w_{\text{activity}} \cdot \text{inactivity}_{\text{penalty}} \\
-&amp;+ w_{\text{walk}} \cdot \text{walking_effort}_{\text{penalty}} \\
-&amp;+ w_{\text{shade}} \cdot \text{lack_shade_shelter}_{\text{penalty}} \\
-&amp;+ w_{\text{air}} \cdot \text{polluted_air}_{\text{penalty}} \\
-&amp;+ w_{\text{noise}} \cdot \text{road_noise}_{\text{penalty}}
+\mathrm{edge\_cost} ={}&amp; w_{\mathrm{length}} \cdot \mathrm{length\_norm} \\
+&amp;+ w_{\mathrm{safety}} \cdot \mathrm{unsafety\_penalty} \\
+&amp;+ w_{\mathrm{activity}} \cdot \mathrm{inactivity\_penalty} \\
+&amp;+ w_{\mathrm{walk}} \cdot \mathrm{walking\_effort\_penalty} \\
+&amp;+ w_{\mathrm{shade}} \cdot \mathrm{lack\_shade\_shelter\_penalty} \\
+&amp;+ w_{\mathrm{air}} \cdot \mathrm{polluted\_air\_penalty} \\
+&amp;+ w_{\mathrm{noise}} \cdot \mathrm{road\_noise\_penalty}
 \end{aligned}
 \]</span></p>
+</section>
+<section class="slide level2">
+
 </section>
 <section>
 <section id="contributions" class="title-slide slide level1 center">
@@ -370,15 +373,101 @@ e^{-0.5 \times \left(d_i / b\right)^2}
 <span id="cb4-10"><a></a>  })<span class="op">;</span></span>
 <span id="cb4-11"><a></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
+<section id="indicators-ndvi-green-space-exposure" class="slide level2">
+<h2>Indicators: NDVI (Green space exposure)</h2>
+<div class="columns">
+<div class="column" style="width:45%;">
+<p>NDVI was derived from Sentinel-2 (2023, cloud &lt; 35%) using the classic approach. Values are sampled at each road segment’s midpoint, mapped from [-1, 1] to [0, 1], then fused with shade &amp; shelter at equal weight and re-normalised (p5-p95) into score_shade_shelter_final.</p>
+<p><span class="math display">\[
+\text{NDVI} = \frac{\text{NIR} - \text{Red}}{\text{NIR} + \text{Red}} = \frac{B8 - B4}{B8 + B4}
+\]</span></p>
+</div><div class="column" style="width:55%;">
+<div class="quarto-figure quarto-figure-center">
+<figure>
+<p><img data-src="images/ndvi_principle.png" style="width:100.0%"></p>
+<figcaption>Healthy vegetation reflects strongly in NIR and absorbs in Red</figcaption>
+</figure>
+</div>
+</div></div>
+</section>
 <section class="slide level2">
 
-<p>NDVI</p>
-<p>Yuqian</p>
-<p>The NDVI was <a href="https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/backend/app/ndvi_service.py">computed</a> with Sentinel2 using the classic approach, and then aggregated into the combined score.</p>
+<h3 id="gee-acquisition">GEE acquisition</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a></a>s2 <span class="op">=</span> ee.ImageCollection(<span class="st">"COPERNICUS/S2_SR_HARMONIZED"</span>) <span class="op">\</span></span>
+<span id="cb5-2"><a></a>    .filterBounds(london) <span class="op">\</span></span>
+<span id="cb5-3"><a></a>    .filterDate(<span class="st">"2023-01-01"</span>, <span class="st">"2023-12-31"</span>) <span class="op">\</span></span>
+<span id="cb5-4"><a></a>    .<span class="bu">filter</span>(ee.Filter.lt(<span class="st">"CLOUDY_PIXEL_PERCENTAGE"</span>, <span class="dv">35</span>))</span>
+<span id="cb5-5"><a></a></span>
+<span id="cb5-6"><a></a>ndvi <span class="op">=</span> s2.median() <span class="op">\</span></span>
+<span id="cb5-7"><a></a>    .normalizedDifference([<span class="st">"B8"</span>, <span class="st">"B4"</span>]) <span class="op">\</span></span>
+<span id="cb5-8"><a></a>    .focal_mean(radius<span class="op">=</span><span class="dv">40</span>, units<span class="op">=</span><span class="st">"meters"</span>) <span class="op">\</span></span>
+<span id="cb5-9"><a></a>    .clamp(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
-<section id="indicators-clean-air-noise" class="slide level2">
-<h2>Indicators: Clean air &amp; noise</h2>
-<p>The indicators were normalised and treated for missing and extreme values. The normalized indicators were then integrated via a weighted linear combination to derive a composite index for each road segment. Script <a href="https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/backend/app/laei_service.py">here</a>.</p>
+<section class="slide level2">
+
+<h3 id="fusion-with-shade-shelter">Fusion with shade &amp; shelter</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a></a><span class="co"># NDVI mapped from [-1,1] to [0,1]</span></span>
+<span id="cb6-2"><a></a>score_green_ndvi <span class="op">=</span> (ndvi <span class="op">+</span> <span class="fl">1.0</span>) <span class="op">/</span> <span class="fl">2.0</span></span>
+<span id="cb6-3"><a></a></span>
+<span id="cb6-4"><a></a><span class="co"># Merge 50/50 with shade, then p5-p95 normalisation</span></span>
+<span id="cb6-5"><a></a>score_shade_ndvi_raw <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> shade_score <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> score_green_ndvi</span>
+<span id="cb6-6"><a></a></span>
+<span id="cb6-7"><a></a>p5, p95 <span class="op">=</span> np.percentile(score_shade_ndvi_raw, [<span class="dv">5</span>, <span class="dv">95</span>])</span>
+<span id="cb6-8"><a></a>score_shade_shelter_final <span class="op">=</span> np.clip(</span>
+<span id="cb6-9"><a></a>    (score_shade_ndvi_raw <span class="op">-</span> p5) <span class="op">/</span> (p95 <span class="op">-</span> p5), <span class="fl">0.0</span>, <span class="fl">1.0</span></span>
+<span id="cb6-10"><a></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Scripts: <a href="https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/backend/scripts/download_ndvi_from_gee.py">download_ndvi_from_gee.py</a> · <a href="https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/backend/app/ndvi_service.py">ndvi_service.py</a></p>
+</section>
+<section id="indicators-clean-air" class="slide level2">
+<h2>Indicators: Clean air</h2>
+<div class="columns">
+<div class="column" style="width:40%;">
+<p>NO₂, PM₂.₅, and PM₁₀ were sampled at each road segment’s midpoint from LAEI rasters. NULL and ≤0 values treated as missing, then each pollutant normalised (p5-p95) and reversed.</p>
+<p><span class="math display">\[
+\begin{array}{l}
+\text{air} =\; 0.40 \cdot \text{NO}_2 \\
++\; 0.35 \cdot \text{PM}_{2.5} \\
++\; 0.25 \cdot \text{PM}_{10}
+\end{array}
+\]</span></p>
+</div><div class="column" style="width:60%;">
+<div class="quarto-figure quarto-figure-center">
+<figure>
+<p><img data-src="images/air_pipeline.png" style="width:40.0%"></p>
+<figcaption>LAEI rasters → midpoint sampling → outlier treatment → p5-p95 normalisation → weighted fusion → score_clean_air</figcaption>
+</figure>
+</div>
+</div></div>
+<p><a href="https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/backend/app/laei_service.py">Script</a>.</p>
+</section>
+<section class="slide level2">
+
+<h3 id="outlier-handling-normalisation">Outlier handling &amp; normalisation</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a></a><span class="co"># Per-pollutant: NULL / &lt;=0 / &lt;= -9990 → missing</span></span>
+<span id="cb7-2"><a></a>valid <span class="op">=</span> np.isfinite(val) <span class="kw">and</span> val <span class="op">!=</span> nodata <span class="kw">and</span> val <span class="op">&gt;</span> <span class="op">-</span><span class="dv">9990</span></span>
+<span id="cb7-3"><a></a></span>
+<span id="cb7-4"><a></a><span class="co"># p5-p95 robust min-max to [0,1]</span></span>
+<span id="cb7-5"><a></a>p5, p95 <span class="op">=</span> np.percentile(values, [<span class="dv">5</span>, <span class="dv">95</span>])</span>
+<span id="cb7-6"><a></a>score <span class="op">=</span> np.clip((arr <span class="op">-</span> p5) <span class="op">/</span> (p95 <span class="op">-</span> p5), <span class="fl">0.0</span>, <span class="fl">1.0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<h3 id="weighted-fusion">Weighted fusion</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a></a><span class="co"># Default weights</span></span>
+<span id="cb8-2"><a></a>weights <span class="op">=</span> AirQualityWeights(no2<span class="op">=</span><span class="fl">0.40</span>, pm25<span class="op">=</span><span class="fl">0.35</span>, pm10<span class="op">=</span><span class="fl">0.25</span>)</span>
+<span id="cb8-3"><a></a></span>
+<span id="cb8-4"><a></a>no2_n  <span class="op">=</span> <span class="va">self</span>._normalize(<span class="st">"no2"</span>, no2)</span>
+<span id="cb8-5"><a></a>pm25_n <span class="op">=</span> <span class="va">self</span>._normalize(<span class="st">"pm25"</span>, pm25)</span>
+<span id="cb8-6"><a></a>pm10_n <span class="op">=</span> <span class="va">self</span>._normalize(<span class="st">"pm10"</span>, pm10)</span>
+<span id="cb8-7"><a></a></span>
+<span id="cb8-8"><a></a>aq_score <span class="op">=</span> (no2_n <span class="op">*</span> weights.no2 <span class="op">+</span> pm25_n <span class="op">*</span> weights.pm25 <span class="op">+</span></span>
+<span id="cb8-9"><a></a>            pm10_n <span class="op">*</span> weights.pm10) <span class="op">/</span> (weights.no2 <span class="op">+</span> weights.pm25 <span class="op">+</span> weights.pm10)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="indicators-noise" class="slide level2">
+<h2>Indicators: Noise</h2>
+<p>Road traffic noise (Lden/Lday) was sampled at each road segment’s midpoint from DEFRA noise rasters. Outlier handling follows the same procedure as air quality: NULL and ≤0 values are treated as missing, filled via median imputation, and clipped at p1–p99.</p>
+<p>Unlike air quality, noise uses a <strong>fixed physical range</strong> for normalisation:</p>
+<p><span class="math display">\[
+\text{score\_not\_too\_noisy} = 1 - \frac{\text{dB} - 40}{85 - 40}
+\]</span></p>
+<p>Each road segment is scored on the [40, 85] dB interval, then reversed so higher scores indicate quieter streets. The routing engine uses score_not_too_noisy directly. <a href="https://github.com/iiishop/CASA0025_Project/blob/main/ComfortPath/backend/app/laei_service.py">Script</a>.</p>
 </section>
 <section id="indicators-walking-effort" class="slide level2">
 <h2>Indicators: Walking effort</h2>
@@ -454,7 +543,7 @@ e^{-0.5 \times \left(d_i / b\right)^2}
         progress: true,
 
         // Display the page number of the current slide
-        slideNumber: false,
+        slideNumber: 'c/t',
 
         // 'all', 'print', or 'speaker'
         showSlideNumber: 'all',
@@ -579,15 +668,15 @@ e^{-0.5 \times \left(d_i / b\right)^2}
         // The "normal" size of the presentation, aspect ratio will be preserved
         // when the presentation is scaled to fit different resolutions. Can be
         // specified using percentage units.
-        width: 1050,
+        width: 1200,
 
-        height: 700,
+        height: 800,
 
         // Factor of the display size that should remain empty around the content
         margin: 0.1,
 
         math: {
-          mathjax: 'https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js',
+          mathjax: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js',
           config: 'TeX-AMS_HTML-full',
           tex2jax: {
             inlineMath: [['\\(','\\)']],

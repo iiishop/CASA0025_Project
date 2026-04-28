@@ -47,18 +47,18 @@ explore specific routes.
 ---
 
 We transformed the scores into penalties, and applied them on a network graph with the following routing cost formula:
-$$
-\begin{array}{l}
-\text{edge_cost} =\; w_{\text{length}} \cdot \text{length}_{\text{norm}} \\
-+\; w_{\text{safety}} \cdot \text{unsafety}_{\text{penalty}} \\
-+\; w_{\text{activity}} \cdot \text{inactivity}_{\text{penalty}} \\
-+\; w_{\text{walk}} \cdot \text{walking_effort}_{\text{penalty}} \\
-+\; w_{\text{shade}} \cdot \text{lack_shade_shelter}_{\text{penalty}} \\
-+\; w_{\text{air}} \cdot \text{polluted_air}_{\text{penalty}} \\
-+\; w_{\text{noise}} \cdot \text{road_noise}_{\text{penalty}}
-\end{array}
-$$
 
+$$
+\begin{aligned}
+\mathrm{edge\_cost} ={}& w_{\mathrm{length}} \cdot \mathrm{length\_norm} \\
+&+ w_{\mathrm{safety}} \cdot \mathrm{unsafety\_penalty} \\
+&+ w_{\mathrm{activity}} \cdot \mathrm{inactivity\_penalty} \\
+&+ w_{\mathrm{walk}} \cdot \mathrm{walking\_effort\_penalty} \\
+&+ w_{\mathrm{shade}} \cdot \mathrm{lack\_shade\_shelter\_penalty} \\
+&+ w_{\mathrm{air}} \cdot \mathrm{polluted\_air\_penalty} \\
+&+ w_{\mathrm{noise}} \cdot \mathrm{road\_noise\_penalty}
+\end{aligned}
+$$
 
 ---
 
